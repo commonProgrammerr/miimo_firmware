@@ -22,6 +22,18 @@ void tick()
   digitalWrite(LED, !digitalRead(LED)); // set pin to the opposite state
 }
 
+String macToStr(const uint8_t *mac)
+{
+  String result;
+  for (int i = 0; i < 6; ++i)
+  {
+    result += String(mac[i], 16);
+    if (i < 5)
+      result += ':';
+  }
+  return result;
+}
+
 //gets called when WiFiManager enters configuration mode
 void configModeCallback(WiFiManager *myWiFiManager)
 {
@@ -53,6 +65,10 @@ void setup()
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wm.setAPCallback(configModeCallback);
 
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  clientName += macToStr(mac);
+  clientName.replace(":", "");
   //fetches ssid and pass and tries to connect
   //if it does not connect it starts an access point with the specified name
   //here  "AutoConnectAP"
