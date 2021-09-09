@@ -9,7 +9,7 @@ Ticker ticker;
 #define LED_BUILTIN 13 // ESP32 DOES NOT DEFINE LED_BUILTIN
 #endif
 
-#define SERVER_IP "deva4rsolucoes1.websiteseguro.com"
+#define SERVER_PATH "http://dev.a4rsolucoes.com.br/apis/teste.asp?api="
 const int buttonPin = 0; // PINO GPIO0
 byte buttonState = 0;    // Estado inicial do botão
 String clientName = "";  //Prefixo do nome do dispositivo ESP
@@ -97,7 +97,7 @@ void loop()
 
       Serial.print("Verificando conexão...\n");
 
-      if (http.begin(client, "http://dev.a4rsolucoes.com.br/apis/teste.asp?api=" + String(buttonState) + "&valor=" + clientName))
+      if (http.begin(client, SERVER_PATH + String(buttonState) + "&valor=" + clientName))
       { // HTTP
 
         Serial.print("Aguardando retorno...\n");
