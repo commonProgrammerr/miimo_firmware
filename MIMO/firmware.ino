@@ -10,11 +10,9 @@ Ticker ticker;
 #endif
 
 #define SERVER_IP "deva4rsolucoes1.websiteseguro.com"
-#define SERVER_CREDENCIAIS "{\"email\":\"manoel@cognvox.net\",\"password\":\"admin\"}"
-#ifndef STASSID
-#define STASSID "escorel"
-#define STAPSK "arer3366547"
-#endif
+const int buttonPin = 0; // PINO GPIO0
+byte buttonState = 0;    // Estado inicial do botão
+String clientName = "";  //Prefixo do nome do dispositivo ESP
 
 int LED = LED_BUILTIN;
 
@@ -76,44 +74,72 @@ void setup()
 
 void loop()
 {
-  // wait for WiFi connection
-  if ((WiFi.status() == WL_CONNECTED))
+  byte newButtonState = digitalRead(buttonPin);
+
+  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+  if (buttonState != newButtonState)
   {
+    // turn LED on:
+    //digitalWrite(ledPin, HIGH);
+    buttonState = newButtonState;
+    Serial.println("CONTATO.");
+    digitalWrite(LED_BUILTIN, HIGH);
 
-    WiFiClient client;
-    HTTPClient https;
-
-    Serial.print("[HTTP] begin...\n");
-    // configure traged server and url
-    https.begin(client, String("https://") + String(SERVER_IP) + String("/apis/teste.asp")); //HTTP
-    https.addHeader("Content-Type", "text/html");
-
-    Serial.print("[HTTP] POST...\n");
-    // start connection and send HTTP header and body
-    int httpCode = https.POST(SERVER_CREDENCIAIS);
-    Serial.println(httpCode);
-    // httpCode will be negative on error
-    if (httpCode > 0)
+    if ((WiFi.status() == WL_CONNECTED))
     {
-      // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTPS] POST... code: %d\n", httpCode);
 
-      // file found at server
-      if (httpCode == HTTP_CODE_OK)
+      WiFiClient client;
+
+      HTTPClient http;
+
+      Serial.println("");
+      Serial.println("Dispositivo: " + clientName);
+
+      Serial.print("Verificando conexão...\n");
+
+      if (http.begin(client, "http://dev.a4rsolucoes.com.br/apis/teste.asp?api=" + String(buttonState) + "&valor=" + clientName))
+      { // HTTP
+
+        Serial.print("Aguardando retorno...\n");
+        // start connection and send HTTP header
+        int httpCode = http.GET();
+
+        // httpCode will be negative on error
+        if (httpCode > 0)
+        {
+          // HTTP header has been send and Server response header has been handled
+          Serial.printf("Retorno... code: %d\n", httpCode);
+
+          // file found at server
+          if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
+          {
+            String payload = http.getString();
+            Serial.println(payload);
+          }
+        }
+        else
+        {
+          Serial.printf("Falha no envio, error: %s\n", http.errorToString(httpCode).c_str());
+        }
+
+        http.end();
+      }
+      else
       {
-        const String &payload = https.getString();
-        Serial.println("received payload:\n<<");
-        Serial.println(payload);
-        Serial.println(">>");
+        Serial.printf("Unable to connect\n");
       }
     }
     else
     {
-      Serial.printf("[HTTP] POST... failed, error: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("Unable to connect\n");
     }
 
-    https.end();
+    delay(400);
   }
-
+  else
+  {
+    Serial.println("Aguardando mudança:");
+    digitalWrite(LED_BUILTIN, LOW);
+  }
   delay(10000);
 }
