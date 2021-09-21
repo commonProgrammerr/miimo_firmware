@@ -8,4 +8,7 @@
   #ifndef SERVER_PATH
     #define SERVER_PATH "http://dev.a4rsolucoes.com.br/apis/teste.asp"
   #endif
+
+  bool check_http_response(HTTPClient &http);
+  bool update_status_on_server(byte status, String clientID);
 #endif
