@@ -1,7 +1,7 @@
 #include "status_server.h"
 
 
-bool status_server_http_return_check(HTTPClient &http)
+bool check_http_response(HTTPClient &http)
 {
   int httpCode = http.GET();
 
@@ -17,7 +17,7 @@ bool status_server_http_return_check(HTTPClient &http)
   }
 }
 
-bool status_server_update_status(byte status, String clientID)
+bool update_status_on_server(byte status, String clientID)
 {
   Serial.print("Verificando conexão...\n");
   if ((WiFi.status() == WL_CONNECTED))
@@ -31,7 +31,7 @@ bool status_server_update_status(byte status, String clientID)
     {
 
       Serial.print("Aguardando retorno...\n");
-      if (status_server_http_return_check(http))
+      if (check_http_response(http))
       {
         Serial.println(http.getString());
         Serial.flush();
@@ -47,7 +47,7 @@ bool status_server_update_status(byte status, String clientID)
     }
     else
     {
-      Serial.println("Unable to connect");
+      Serial.println("Rede indisponivel");
       return false;
     }
   }

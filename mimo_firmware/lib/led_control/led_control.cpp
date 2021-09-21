@@ -1,8 +1,9 @@
 #include "led_control.h"
 
+Ticker ticker;
+
 void tick()
 {
-  //toggle state
   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // set pin to the opposite state
 }
 
