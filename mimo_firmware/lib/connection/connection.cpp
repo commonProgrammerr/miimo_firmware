@@ -32,7 +32,6 @@ bool wifi_connect(WiFiManager &wifi_manager)
   wifi_manager.setConfigPortalTimeout(500);
   wifi_manager.setAPCallback(wifi_config_mode_callback);
 
-  
   return wifi_manager.autoConnect(getDeviceName().c_str());
 }
 
@@ -48,6 +47,8 @@ void wifi_connection_setup()
 
   WiFiManager wifi_manager;
 
+  WiFiManagerParameter custom_mqtt_server("delay", "Tempo de acionamento (em segundos)", "5", 30);
+  wifi_manager.addParameter(&custom_mqtt_server);
   //reset settings
   // wifi_manager.resetSettings();
 
