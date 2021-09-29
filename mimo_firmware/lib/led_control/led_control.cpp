@@ -18,9 +18,9 @@ void led_tick_stop() {
 
 void led_OFF()
 {
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 void led_ON()
 {
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_BUILTIN, HIGH);
 }

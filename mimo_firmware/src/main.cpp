@@ -8,18 +8,20 @@
 #include "user_interface.h"
 #include "gpio.h"
 
-#define BUTTON_PIN 0
+#define BUTTON_PIN D1
 
 byte buttonState = 0;
 
 void get_pin_status_update_server(long time_delay = 2000)
 {
   byte newButtonState = digitalRead(BUTTON_PIN);
+  led_ON();
   if (buttonState == newButtonState)
     return;
   delay(time_delay);
   if (newButtonState == digitalRead(BUTTON_PIN))
   {
+    led_tick_start(0.2);
     buttonState = newButtonState;
     Serial.println("contact!");
     if (WiFi.status() != WL_CONNECTED)
@@ -51,6 +53,7 @@ void get_pin_status_update_server(long time_delay = 2000)
   {
     Serial.print('.');
   }
+  led_OFF();
 }
 
 void setup()
