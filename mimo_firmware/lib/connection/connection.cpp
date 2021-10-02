@@ -1,5 +1,22 @@
 #include "connection.h"
 
+WiFiManager* wm = nullptr;
+
+String getParam(String name){
+  //read parameter from server, for customhmtl input
+  String value;
+  if(wm != nullptr && wm->server->hasArg(name)) {
+    value = wm->server->arg(name);
+  }
+  return value;
+}
+
+void saveParamCallback(){
+  Serial.println("[CALLBACK] saveParamCallback fired");
+  Serial.println("PARAM customfieldid = " + getParam("delay"));
+  wm = nullptr;
+}
+
 String macToStr(const uint8_t *mac)
 {
   String result;
@@ -46,11 +63,14 @@ void wifi_connection_setup()
   WiFi.mode(WIFI_STA);
 
   WiFiManager wifi_manager;
-
-  WiFiManagerParameter custom_mqtt_server("delay", "Tempo de acionamento (em segundos)", "5", 30);
-  wifi_manager.addParameter(&custom_mqtt_server);
+  wm = &wifi_manager;
+  WiFiManagerParameter custom_delay("<label for='delay'>Delay (em segundos)</label><input type='number' id='delay' name='delay' maxlength='10' value='5.0' min='0.6' step='0.2'>");
+  wifi_manager.addParameter(&custom_delay);
+  wifi_manager.setSaveParamsCallback(saveParamCallback);
+  std::vector<const char *> menu = {"wifi","info","sep","exit"};
+  wifi_manager.setMenu(menu);
   //reset settings
-  // wifi_manager.resetSettings();
+  wifi_manager.resetSettings();
 
   if (!wifi_connect(wifi_manager))
   {

@@ -12,13 +12,13 @@
 
 byte buttonState = 0;
 
-void get_pin_status_update_server(long time_delay = 2000)
+void get_pin_status_update_server(float time_delay = 2.0f)
 {
   byte newButtonState = digitalRead(BUTTON_PIN);
   led_ON();
   if (buttonState == newButtonState)
     return;
-  delay(time_delay);
+  delay(static_cast<long>(time_delay * 1000));
   if (newButtonState == digitalRead(BUTTON_PIN))
   {
     led_tick_start(0.2);
@@ -62,10 +62,10 @@ void setup()
   Serial.setTimeout(2000);
   pinMode(BUTTON_PIN, INPUT);
   gpio_init();
-  Serial.flush();
   Serial.print('\n');
   wifi_connection_setup();
   Serial.flush();
+
 }
 
 void loop()
