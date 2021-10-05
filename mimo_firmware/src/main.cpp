@@ -10,7 +10,7 @@
 
 #define BUTTON_PIN D1
 
-byte buttonState = 0;
+byte buttonState = 1;
 
 void get_pin_status_update_server(float time_delay = 2.0f)
 {
@@ -75,12 +75,12 @@ void loop()
   {
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
-    Serial.println("WiFi is down");
+    Serial.println("[main]: WiFi is down");
     delay(10);
   }
   else
   {
-    Serial.print("Pin state: ");
+    Serial.print("[main]: Pin state: ");
     Serial.println(digitalRead(BUTTON_PIN));
     delay(300);
   }

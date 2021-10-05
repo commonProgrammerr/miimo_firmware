@@ -1,6 +1,7 @@
 #ifndef _CONNECTION_H
   #define _CONNECTION_H
 
+  #include "params.h"
   #include <Arduino.h>
   #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
