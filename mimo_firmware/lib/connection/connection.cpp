@@ -11,9 +11,15 @@ String getParam(String name){
   return value;
 }
 
+String getParam(String name, String default_value) {
+  String param = getParam(name);
+  return param.length() == 0 ? default_value : param;
+}
+
 void saveParamCallback(){
-  Serial.println("[CALLBACK] saveParamCallback fired");
-  Serial.println("PARAM customfieldid = " + getParam("delay"));
+  params_start_FS();
+  save_param("delay", getParam("delay", get_saved_param("delay")));
+  Serial.println("[WiFi CallBack]: save callback function suceeded!");
   wm = nullptr;
 }
 
@@ -38,7 +44,7 @@ String getDeviceName()
 void wifi_config_mode_callback(WiFiManager *myWiFiManager)
 {
   delay(100);
-  Serial.println("Modo de configuraçao iniciado");
+  Serial.println("[WiFi]: Modo de configuraçao iniciado");
   Serial.println(WiFi.softAPIP());
   Serial.println(myWiFiManager->getConfigPortalSSID());
 }
@@ -74,12 +80,12 @@ void wifi_connection_setup()
 
   if (!wifi_connect(wifi_manager))
   {
-    Serial.println("falha ao conncetar, tempo maximo atingido!");
+    Serial.println("[WiFi]: Falha ao conncetar, tempo maximo atingido!");
     ESP.restart();
     delay(1000);
   }
   else
   {
-    Serial.println("conectado!");
+    Serial.println("[WiFi]: conectado!");
   }
 }
