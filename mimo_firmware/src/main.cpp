@@ -8,11 +8,12 @@
 #include "user_interface.h"
 #include "gpio.h"
 
-#define BUTTON_PIN D1
+#define BUTTON_PIN 0
 
-byte buttonState = 1;
-
-void get_pin_status_update_server(float time_delay = 2.0f)
+byte buttonState = 0;
+float time_delay = 2.0f; 
+  
+void get_pin_status_update_server()
 {
   byte newButtonState = digitalRead(BUTTON_PIN);
   led_ON();
@@ -65,7 +66,7 @@ void setup()
   Serial.print('\n');
   wifi_connection_setup();
   Serial.flush();
-
+  time_delay = get_saved_param("delay").toFloat();
 }
 
 void loop()

@@ -2,7 +2,7 @@
 
 bool is_file_system_enabled = false;
 
-void save_param (String param_name, String value)
+void save_param(String param_name, String value)
 {
   File param_file = LittleFS.open("/" + param_name, "w+");
   if (!param_file)
@@ -20,7 +20,7 @@ void save_param (String param_name, String value)
 String get_saved_param(String param_name)
 {
   File param_file = LittleFS.open("/" + param_name, "r");
-  
+
   if (!param_file)
     Serial.println("[FS - " + param_name + "]: " + "Erro ao abrir arquivo!");
 
@@ -41,5 +41,17 @@ void params_start_FS()
   else
   {
     Serial.println("[FS]: Erro ao abrir o sistema de arquivos!");
+  }
+  init_param("delay", "2.0");
+}
+
+void init_param(String param, String value)
+{
+  if (!is_file_system_enabled || LittleFS.exists("/" + param))
+    return;
+
+  else
+  {
+    save_param(param, value);
   }
 }
