@@ -76,7 +76,7 @@ void wifi_connection_setup()
   std::vector<const char *> menu = {"wifi","info","sep","exit"};
   wifi_manager.setMenu(menu);
   //reset settings
-  wifi_manager.resetSettings();
+  // wifi_manager.resetSettings();
 
   if (!wifi_connect(wifi_manager))
   {

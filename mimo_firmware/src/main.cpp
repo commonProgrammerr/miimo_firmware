@@ -11,8 +11,8 @@
 #define BUTTON_PIN 0
 
 byte buttonState = 0;
-float time_delay = 2.0f; 
-  
+float time_delay = 2.0f;
+
 void get_pin_status_update_server()
 {
   byte newButtonState = digitalRead(BUTTON_PIN);
