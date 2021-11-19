@@ -1,6 +1,5 @@
 #include "status_server.h"
 
-
 bool check_http_response(HTTPClient &http)
 {
   int httpCode = http.GET();
@@ -17,17 +16,16 @@ bool check_http_response(HTTPClient &http)
   }
 }
 
-bool update_status_on_server(byte status, String clientID)
+bool update_status_on_server(byte status, String client_id)
 {
   Serial.print("[HTTP]: Verificando conexão...\n");
   if ((WiFi.status() == WL_CONNECTED))
   {
     WiFiClient client;
     HTTPClient http;
-    String status_query_params = "?api=" + String(status) + "&valor=" + clientID;
 
     Serial.print("[HTTP]: Enviando status... ");
-    if (http.begin(client, SERVER_PATH + status_query_params))
+    if (http.begin(client, (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status)))
     {
 
       Serial.println("[HTTP]: Aguardando retorno...");
