@@ -71,6 +71,15 @@ bool wifi_reconnect()
   return wifi_manager.autoConnect();
 }
 
+bool simple_wifi_reconnect()
+{
+  WiFiManager wifi_manager;
+  String SSID = wifi_manager.getWiFiSSID();
+  String Pass = wifi_manager.getWiFiPass();
+  
+  return WiFi.begin(SSID, Pass) == WL_CONNECTED;
+}
+
 void wifi_connection_setup()
 {
   WiFi.mode(WIFI_STA);
