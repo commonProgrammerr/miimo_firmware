@@ -16,58 +16,49 @@ extern "C"
 
 #define SENSOR_PIN 0
 #define RESTORE_PIN 2
-#define RECURRENCE_CODE 3
+#define CLEAN_CODE 0
+#define ALARM_CODE 3
+#define FALSE_ALARM_CODE 3
 
-byte sensor_status = 0;
-bool was_alarm = false;
-int counter = 0;
+byte saved_sensor_status = 0;
+// #define SET_SENSOR_STATUS (status) sensor_status = status; system_rtc_mem_write(64, &sensor_status, 4);
+// #define UPDATE_SENSOR_STATUS (status) system_rtc_mem_read(64, &sensor_status, 4);
+
+bool was_false_alarm = false;
 float time_delay = 2.0f;
-
-bool IS_A_CRITICAL_RECURRENCE() __attribute__((always_inline));
-
-bool inline IS_A_CRITICAL_RECURRENCE(long t)
-{
-  int counter_limiter = static_cast<int>(6 + (time_delay / 3));
-  long min_valid_time = static_cast<long>(time_delay * 920);
-  return (counter >= counter_limiter && t < min_valid_time);
-}
 
 byte get_sensor_status()
 {
-  byte current_sensor_status = digitalRead(SENSOR_PIN);
-  if (sensor_status == current_sensor_status)
-    return sensor_status;
-  else
-  {
-    for (long t = 0; t < time_delay * 1000; t += 50)
-    {
-      delay(50);
-      if (IS_A_CRITICAL_RECURRENCE(t))
-      {
-        counter = 0;
-        return RECURRENCE_CODE;
-      }
-      else if (digitalRead(SENSOR_PIN) != current_sensor_status)
-      {
-        counter++;
-        current_sensor_status = digitalRead(SENSOR_PIN);
-      }
-    }
-    counter = 0;
-    return current_sensor_status;
-  }
+  delay(200);
+  byte first_read = GPIO_INPUT_GET(SENSOR_PIN);
+  Serial.print("[debug]: sensor pin first read = ");
+  Serial.println(first_read);
+
+  if(first_read == saved_sensor_status)
+    return first_read;
+
+  delay(static_cast<long>(time_delay * 820));
+
+  byte current_sensor_status = GPIO_INPUT_GET(SENSOR_PIN);
+  Serial.print("[debug]: after first read, sensor pin read = ");
+  Serial.println(current_sensor_status);
+
+  was_false_alarm = first_read != current_sensor_status;
+
+  if (was_false_alarm)
+    return FALSE_ALARM_CODE;
+
+  delay(static_cast<long>(time_delay * 180));
+  current_sensor_status = GPIO_INPUT_GET(SENSOR_PIN);
+  Serial.print("[debug]: after second read, sensor pin read = ");
+  Serial.println(current_sensor_status);
+
+  return current_sensor_status;
 }
 
 void update_server(byte code)
 {
   WiFi.mode(WIFI_STA);
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    // WiFiManager wm;
-    // wm.getWiFiSSID();
-    // wm.getWiFiPass();
-    Serial.println("[main]: Ligando wifi...");
-  }
   if (wifi_reconnect())
   {
     Serial.println("[main]: Conectado!");
@@ -85,106 +76,100 @@ void update_server(byte code)
   }
   else
   {
-    ESP.reset();
+    Serial.println("[WiFi]: Wifi indisponivel!");
   }
 }
 
-void initWifi()
+// void initWifi()
+// {
+//   WiFi.mode(WIFI_STA);
+//   WiFi.begin("GVT-8D59", "arer3366547");
+//   while ((WiFi.status() != WL_CONNECTED))
+//   {
+//     delay(500);
+//     Serial.print(".");
+//   }
+//   Serial.println("");
+//   Serial.print("WiFi connected, IP address: ");
+//   Serial.println(WiFi.localIP());
+// }
+
+void sleep(byte wakeup_mode)
 {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin("GVT-8D59", "arer3366547");
-  while ((WiFi.status() != WL_CONNECTED))
+  byte real_wakeup_mode;
+  Serial.println("[main]: Going to sleep now...");
+  
+  if (wakeup_mode == GPIO_INPUT_GET(SENSOR_PIN))
   {
-    delay(500);
-    Serial.print(".");
+    real_wakeup_mode = wakeup_mode;
   }
-  Serial.println("");
-  Serial.print("WiFi connected, IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
-void wakeup_callback()
-{
+  else
+  {
+    real_wakeup_mode = GPIO_INPUT_GET(SENSOR_PIN);
+  }
   delay(200);
-  byte status_readed = get_sensor_status();
-  if (status_readed == RECURRENCE_CODE)
-  {
-    update_server(RECURRENCE_CODE);
-    sensor_status = digitalRead(SENSOR_PIN);
-    was_alarm = true;
-  }
-  else if (status_readed != sensor_status)
-  {
-    sensor_status = status_readed;
-    was_alarm = false;
-    update_server(status_readed);
-  }
-  // if ((WiFi.status() == WL_CONNECTED))
-  // {
-  //   WiFi.mode(WIFI_OFF);
-  //   WiFi.forceSleepBegin();
-  //   Serial.println("[main]: WiFi is down");
-  //   delay(10);
-  // }
-  // else
-  // {
-  //   Serial.print("[main]: Sensor status: ");
-  //   Serial.println(digitalRead(SENSOR_PIN));
-  //   delay(300);
-  // }
-}
-
-void sleep()
-{
-  byte sensor_status = digitalRead(SENSOR_PIN);
   wifi_station_disconnect();
   wifi_set_opmode_current(NULL_MODE);
   wifi_fpm_set_sleep_type(LIGHT_SLEEP_T);
-  wifi_fpm_open();                                                                                                     // Enables force sleep
-  gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), sensor_status == 0 ? GPIO_PIN_INTR_HILEVEL : GPIO_PIN_INTR_LOLEVEL); // GPIO_ID_PIN(2) corresponds to GPIO2 on ESP8266-01 , GPIO_PIN_INTR_LOLEVEL for a logic low, can also do other interrupts, see gpio.h above
-  // gpio_pin_wakeup_enable(GPIO_ID_PIN(RESTORE_PIN), GPIO_PIN_INTR_LOLEVEL);                                             // GPIO_ID_PIN(2) corresponds to GPIO2 on ESP8266-01 , GPIO_PIN_INTR_LOLEVEL for a logic low, can also do other interrupts, see gpio.h above
-  // wifi_fpm_set_wakeup_cb(wakeup_callback);
-  wifi_fpm_do_sleep(0xFFFFFFF); // Sleep for longest possible time
+  wifi_fpm_open();
+  if (real_wakeup_mode == CLEAN_CODE)
+  {
+    Serial.println("[main]: Set wakeup mode to HILEVEL");
+    delay(200);
+    gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), GPIO_PIN_INTR_HILEVEL);
+  }
+  else
+  {
+    Serial.println("[main]: Set wakeup mode to LOLEVEL");
+    delay(200);
+    gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), GPIO_PIN_INTR_LOLEVEL);
+  }
+  wifi_fpm_do_sleep(0x337F9800); // Sleep for longest possible time
 }
 
 void setup()
 {
   Serial.begin(115200);
   gpio_init(); // Initilise GPIO pins
-
+  delay(100);
   params_start_FS();
   Serial.print('\n');
   wifi_connection_setup();
   Serial.flush();
   time_delay = get_saved_param("delay").toFloat();
+  saved_sensor_status = GPIO_INPUT_GET(SENSOR_PIN);
 }
 
 void loop()
 {
-  if ((WiFi.status() != WL_CONNECTED))
-  {
-    WiFi.mode(WIFI_OFF);
-    WiFi.forceSleepBegin();
-    Serial.println("[main]: WiFi is down");
-    delay(10);
-  }
-  delay(200);
+  Serial.println("[main]: Wake!");
+  Serial.print("[debug]: delay time = ");
+  Serial.println(time_delay);
+  Serial.print("[debug]: last status = ");
+  Serial.println(saved_sensor_status);
+
   byte status_readed = get_sensor_status();
-  if (status_readed == RECURRENCE_CODE)
+  Serial.print("[debug]: final status = ");
+  Serial.println(status_readed);
+  if (status_readed == FALSE_ALARM_CODE)
   {
-    update_server(RECURRENCE_CODE);
-    sensor_status = digitalRead(SENSOR_PIN);
-    was_alarm = true;
+    update_server(FALSE_ALARM_CODE);
+    delay(200);
+    sleep(GPIO_INPUT_GET(SENSOR_PIN));
+    delay(200);
   }
-  else if (status_readed != sensor_status)
+  else if (status_readed != saved_sensor_status || (!was_false_alarm && status_readed == CLEAN_CODE))
   {
-    sensor_status = status_readed;
-    was_alarm = false;
+    saved_sensor_status = status_readed;
     update_server(status_readed);
+    delay(200);
+    sleep(saved_sensor_status);
+    delay(200);
   }
-  delay(200);
-  Serial.println("Going to sleep now");
-  sleep();
-  delay(200);
-  Serial.println("Wake up");
+  else
+  {
+    delay(200);
+    sleep(GPIO_INPUT_GET(SENSOR_PIN));
+    delay(200);
+  }
 }
