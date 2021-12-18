@@ -3,7 +3,6 @@
 bool check_http_response(HTTPClient &http)
 {
   int httpCode = http.GET();
-
   if (httpCode > 0)
   {
     Serial.printf("[HTTP]: Retorno... code: %d\n", httpCode);
@@ -12,6 +11,7 @@ bool check_http_response(HTTPClient &http)
   }
   else
   {
+    Serial.printf("[HTTP]: Falha no envio, code: %d\n", httpCode);
     return false;
   }
 }
@@ -24,24 +24,20 @@ bool update_status_on_server(byte status, String client_id)
     WiFiClient client;
     HTTPClient http;
 
-    Serial.print("[HTTP]: Enviando status... ");
-    if (http.begin(client, (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status)))
+    Serial.println("[HTTP]: Enviando status... ");
+    bool http_sucess_connection =  http.begin(client, (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status));
+    if (http_sucess_connection)
     {
-
       Serial.println("[HTTP]: Aguardando retorno...");
-      if (check_http_response(http))
+      bool http_sucess_response = check_http_response(http);
+      if (http_sucess_response)
       {
-        Serial.println("[HTTP Return]: " + http.getString());
+        Serial.println("[HTTP]: Return = \"" + http.getString() + "\"");
         Serial.flush();
-        return true;
       }
-      else
-      {
-        Serial.printf("[HTTP]: Falha no envio, error: %s\n", http.errorToString(http.GET()).c_str());
-        return false;
-      }
-
       http.end();
+
+      return http_sucess_response;
     }
     else
     {
