@@ -4,9 +4,12 @@
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServerSecure.h>
 
 #ifndef SERVER_URL
-#define SERVER_URL "http://miimo.a4rsolucoes.com.br/apis/registro/"
+#define SERVER_URL "https://socketio-teste.herokuapp.com/"
+// #define SERVER_URL "http://192.168.15.31:3030/"
+// #define SERVER_URL "http://miimo.a4rsolucoes.com.br/apis/registro/"
 #define ID_PARAM "API"
 #define VALUE_PARAM "VALOR"
 #endif
