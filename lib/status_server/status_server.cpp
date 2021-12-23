@@ -21,8 +21,12 @@ bool update_status_on_server(byte status, String client_id)
   Serial.print("[HTTP]: Verificando conexão...\n");
   if ((WiFi.status() == WL_CONNECTED))
   {
-    WiFiClient client;
+    // WiFiClient client;
+    WiFiClientSecure client;
     HTTPClient http;
+
+    client.setInsecure();
+    client.connect(SERVER_URL, 443);
 
     Serial.println("[HTTP]: Enviando status... ");
     bool http_sucess_connection =  http.begin(client, (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status));

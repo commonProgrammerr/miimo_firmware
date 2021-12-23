@@ -105,7 +105,6 @@ void sleep(byte wakeup_mode)
   wifi_station_disconnect();
   wifi_set_opmode_current(NULL_MODE);
   wifi_fpm_set_sleep_type(LIGHT_SLEEP_T);
-  wifi_fpm_open();
   if (real_wakeup_mode == CLEAN_CODE)
   {
     Serial.println("[main]: Set wakeup mode to HILEVEL");
@@ -114,11 +113,11 @@ void sleep(byte wakeup_mode)
   }
   else
   {
-    GPIO_OUTPUT_SET(SENSOR_PIN, real_wakeup_mode);
     Serial.println("[main]: Set wakeup mode to LOLEVEL");
     delay(200);
     gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), GPIO_PIN_INTR_LOLEVEL);
   }
+  wifi_fpm_open();
   wifi_fpm_do_sleep(0xFFFFFFF); // Sleep for longest possible time
 }
 
