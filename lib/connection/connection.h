@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
-#define DELAY_FIELD_HTML "<label for='delay'>Delay (em segundos)</label><input type='number' id='delay' name='delay' maxlength='10' value='5.0' min='0.6' step='0.2'>"
+#define DELAY_FIELD_HTML "<label for='delay'>Delay (em segundos)</label><input type='number' id='delay' name='delay' maxlength='10' value='15.0' min='0.6' step='0.2'>"
 
 String macToStr(const uint8_t *mac);
 String getDeviceName();

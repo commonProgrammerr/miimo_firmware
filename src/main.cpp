@@ -14,10 +14,10 @@ extern "C"
 #include "user_interface.h"
 }
 
-#define SENSOR_PIN 0
-#define RESTORE_PIN 2
+#define SENSOR_PIN D5
+#define RESTORE_PIN LED_BUILTIN
 #define CLEAN_CODE 0
-#define ALARM_CODE 3
+#define ALARM_CODE 1
 #define FALSE_ALARM_CODE 3
 #define DEBUG_LOG
 byte saved_sensor_status = 10;
@@ -25,40 +25,48 @@ byte saved_sensor_status = 10;
 // #define UPDATE_SENSOR_STATUS (status) system_rtc_mem_read(64, &sensor_status, 4);
 
 #ifdef DEBUG_LOG
-#define debug_log(msg, data) ((Serial.print((msg))), (Serial.println((data))), (void)0)
+#define log(msg) (Serial.println(msg))
+#define log_value(msg, data) ((Serial.print((msg))), (log((data))), (void)0)
 #else
-#define debug_log(msg, data) (void)0
+#define log_value(msg, data) (void)0
+#define log(msg) (void)0
 #endif
+
+#define gpioRead(pin) (GPIO_INPUT_GET(GPIO_ID_PIN(pin)))
+// #define gpioRead(pin) (digitalRead(pin))
+#define sensor() (gpioRead(SENSOR_PIN))
+#define await(t) (delay(static_cast<long>(t)))
 
 bool was_false_alarm = false;
 float time_delay = 2.0f;
 
 byte get_sensor_status()
 {
-  delay(200);
-  byte first_read = GPIO_INPUT_GET(SENSOR_PIN);
-  debug_log("[debug]: sensor pin first read = ", first_read);
 
-  if (first_read == saved_sensor_status)
-    return first_read;
+  byte read[] = {10, 10, 10};
+  read[0] = sensor();
+  log_value("[status]: sensor_read[0] = ", read[0]);
 
-  delay(static_cast<long>(time_delay * 860));
+  if (read[0] == saved_sensor_status)
+    return read[0];
 
-  byte current_sensor_status = GPIO_INPUT_GET(SENSOR_PIN);
-  debug_log("[debug]: after first read, sensor pin read = ", current_sensor_status);
+  await(time_delay * (160 + ((read[0] == LOW) ? 200 : 700)));
 
-  bool was_pass_limit = first_read == current_sensor_status;
+  read[1] = sensor();
+  log_value("[status]: sensor_read[1] = ", read[1]);
 
-  delay(static_cast<long>(time_delay * 140));
-  current_sensor_status = GPIO_INPUT_GET(SENSOR_PIN);
-  debug_log("[debug]: after second read, sensor pin read = ", current_sensor_status);
+  if (read[0] != LOW)
+  {
+    await(time_delay * 140);
+    read[2] = sensor();
+    log_value("[status]: sensor_read[2] = ", read[2]);
 
-  was_false_alarm = was_pass_limit && current_sensor_status != first_read;
+    return (read[1] == read[0] && read[2] != read[0])
+               ? FALSE_ALARM_CODE
+               : read[2];
+  }
 
-  if (was_false_alarm)
-    return FALSE_ALARM_CODE;
-
-  return current_sensor_status;
+  return read[1];
 }
 
 bool update_server(byte code)
@@ -66,68 +74,74 @@ bool update_server(byte code)
   WiFi.mode(WIFI_STA);
   if (wifi_reconnect())
   {
-    Serial.println("[main]: Conectado!");
-    Serial.println("[main]: Enviando...");
-    Serial.print("[main]: Sensor status: ");
-    Serial.println(code);
+    log("[main]: Conectado!");
+    log("[main]: Enviando...");
+    log_value("[main]: Sensor status: ", code);
     if (update_status_on_server(code, getDeviceName().substring(6)))
     {
-      Serial.println("Sucesso!");
+      log("Sucesso!");
       return true;
     }
     else
     {
-      Serial.println("Error!");
+      log("Error!");
       return false;
     }
   }
   else
   {
-    Serial.println("[WiFi]: Wifi indisponivel!");
+    log("[WiFi]: Wifi indisponivel!");
     return false;
   }
 }
 
-void sleep(byte wakeup_mode)
+void wakeup_callback()
 {
-  byte real_wakeup_mode;
-  Serial.println("[main]: Going to sleep now...");
+  log("[wakeup]: Wake!");
+  log_value("[wakeup]: delay time = ", time_delay);
+  log_value("[wakeup]: last status = ", saved_sensor_status);
+  GPIO_OUTPUT_SET(GPIO_ID_PIN(RESTORE_PIN), LOW);
+}
 
-  if (wakeup_mode == GPIO_INPUT_GET(SENSOR_PIN))
-  {
-    real_wakeup_mode = wakeup_mode;
-  }
-  else
-  {
-    real_wakeup_mode = GPIO_INPUT_GET(SENSOR_PIN);
-  }
-  delay(200);
+void sleep()
+{
+  WiFi.mode(WIFI_OFF);
+
+  log("[sleep]: Going to sleep now...");
+  delay(3);
+
   wifi_station_disconnect();
   wifi_set_opmode_current(NULL_MODE);
   wifi_fpm_set_sleep_type(LIGHT_SLEEP_T);
-  if (real_wakeup_mode == CLEAN_CODE)
+  wifi_fpm_set_wakeup_cb(wakeup_callback);
+  if (sensor() == 0)
   {
-    Serial.println("[main]: Set wakeup mode to HILEVEL");
-    delay(200);
+    log("[sleep]: Set wakeup mode to HILEVEL");
+    delay(3);
     gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), GPIO_PIN_INTR_HILEVEL);
   }
   else
   {
-    Serial.println("[main]: Set wakeup mode to LOLEVEL");
-    delay(200);
+    log("[sleep]: Set wakeup mode to LOLEVEL");
+    delay(3);
     gpio_pin_wakeup_enable(GPIO_ID_PIN(SENSOR_PIN), GPIO_PIN_INTR_LOLEVEL);
   }
   wifi_fpm_open();
-  wifi_fpm_do_sleep(0xFFFFFFF); // Sleep for longest possible time
+  wifi_fpm_do_sleep(0xFFFFFFF);
+  delay(100);
 }
 
 void setup()
 {
   Serial.begin(115200);
   gpio_init(); // Initilise GPIO pins
-  delay(100);
+  delay(1000);
   params_start_FS();
-  Serial.print('\n');
+#ifdef ENV_NODEMCU
+  Serial.println
+  ('teste');
+  delay(100);
+#endif
   wifi_connection_setup();
   Serial.flush();
   time_delay = get_saved_param("delay").toFloat();
@@ -135,35 +149,19 @@ void setup()
 
 void loop()
 {
-  Serial.println("[main]: Wake!");
-  GPIO_OUTPUT_SET(RESTORE_PIN, LOW);
-  debug_log("[debug]: delay time = ", time_delay);
-  debug_log("[debug]: last status = ", saved_sensor_status);
-
   byte status_readed = get_sensor_status();
-  debug_log("[debug]: final status = ", status_readed);
+  log_value("[main]: final status = ", status_readed);
 
   if (status_readed == FALSE_ALARM_CODE)
   {
-    update_server(FALSE_ALARM_CODE);
-    delay(200);
-    sleep(GPIO_INPUT_GET(SENSOR_PIN));
-    delay(200);
+    if (update_server(status_readed))
+      saved_sensor_status = sensor();
   }
   else if (status_readed != saved_sensor_status)
   {
     if (update_server(status_readed))
       saved_sensor_status = status_readed;
-    GPIO_OUTPUT_SET(RESTORE_PIN, HIGH);
-    delay(200);
-    sleep(saved_sensor_status);
-    delay(200);
   }
-  else
-  {
-    delay(200);
-    GPIO_OUTPUT_SET(RESTORE_PIN, HIGH);
-    sleep(GPIO_INPUT_GET(SENSOR_PIN));
-    delay(200);
-  }
+
+  sleep();
 }
