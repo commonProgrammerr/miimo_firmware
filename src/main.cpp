@@ -14,7 +14,7 @@ extern "C"
 #include "user_interface.h"
 }
 
-#define SENSOR_PIN D5
+#define SENSOR_PIN 2
 #define RESTORE_PIN LED_BUILTIN
 #define CLEAN_CODE 0
 #define ALARM_CODE 1
