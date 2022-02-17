@@ -80,7 +80,7 @@ bool simple_wifi_reconnect()
   return WiFi.begin(SSID, Pass) == WL_CONNECTED;
 }
 
-void wifi_connection_setup()
+bool wifi_connection_setup()
 {
   WiFi.mode(WIFI_STA);
 
@@ -100,9 +100,11 @@ void wifi_connection_setup()
     Serial.println("[WiFi]: Falha ao connectar, tempo maximo atingido!");
     ESP.restart();
     delay(1000);
+    return false;
   }
   else
   {
     Serial.println("[WiFi]: conectado!");
+    return true;
   }
 }

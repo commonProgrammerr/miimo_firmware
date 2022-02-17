@@ -17,6 +17,6 @@ bool wifi_connect(WiFiManager &wifi_manager);
 
 bool wifi_reconnect();
 
-void wifi_connection_setup();
+bool wifi_connection_setup();
 
 #endif
