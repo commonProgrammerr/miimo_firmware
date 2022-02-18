@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
-#include <rtc_memory.h>
+// #include <rtc_memory.h>
 #include "status_server.h"
 #include "connection.h"
 extern "C"
@@ -27,8 +27,10 @@ extern "C"
 #define log_value(msg, data) ((Serial.print((msg))), (log((data))), (void)0)
 #endif
 
-#define SAVE_SENSOR_STATUS(status) system_rtc_mem_write(64, &status, 4);
-#define READ_LAST_STATUS(status) system_rtc_mem_read(64, &status, 4);
+#define SAVE_IN_RTC_MEMO(status, memo) system_rtc_mem_write(memo, &status, sizeof(status));
+#define READ_OF_RTC_MEMO(status, memo) system_rtc_mem_read(memo, &status, sizeof(status));
+#define SAVE_IN_RTC(status) SAVE_IN_RTC_MEMO(status, 64));
+#define READ_OF_RTC(status) READ_OF_RTC_MEMO(status, 64));
 
 
 #define gpioRead(pin) (GPIO_INPUT_GET(GPIO_ID_PIN(pin)))
