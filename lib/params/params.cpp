@@ -47,7 +47,8 @@ void params_start_FS()
     Serial.println("[FS]: Erro ao abrir o sistema de arquivos!");
   }
   init_param("delay", "2.0");
-  init_param("status", "10");
+  // init_param("status", "10");
+  // init_param("config", "1");
 }
 
 void init_param(String param, String value)

@@ -1,33 +1,47 @@
 #include <Arduino.h>
 #include <stand.h>
 
+#define RTCMEMORYSTART 65
+
 float time_delay = 2.0f;
 byte saved_sensor_status = 10;
-int started;
-typedef struct {
-    int started;
-} RTCSavedData;
+// typedef struct {
+//     int started;
+// } rtc_store;
 
-void config(boolean config)
+// rtc_store store;
+
+
+// void readFromRTCMemory() {
+//   system_rtc_mem_read(RTCMEMORYSTART, &store, sizeof(store));
+//   yield();
+// }
+
+// void writeToRTCMemory() {
+//   system_rtc_mem_write(RTCMEMORYSTART, &store, 4);
+//   yield();
+// }
+
+
+void config()
 {
   Serial.begin(115200);
   gpio_init(); // Initilise GPIO pins
   delay(1000);
   params_start_FS();
-  config ? wifi_connection_setup() : false;
+  wifi_connection_setup();
+  // if(store.started != 0 && ) {
+  //   store.started = 0;
+  //   readFromRTCMemory();
+  // }
   Serial.flush();
-  saved_sensor_status = static_cast<byte>(get_saved_param("delay").toInt());
+  saved_sensor_status = static_cast<byte>(get_saved_param("status").toInt());
   time_delay = get_saved_param("delay").toFloat();
 }
 
 void setup()
 {
-  RtcMemory* rtcMemory = new RtcMemory();
-  rtcMemory->begin();
-  RTCSavedData* rtcData = rtcMemory->getData<RTCSavedData>();
-  started = rtcData->started;
-  config(started == 0);
-  
+  config();
   log_value("[main]: delay time = ", time_delay);
   log_value("[main]: saved status = ", saved_sensor_status);
   byte status_readed = get_sensor_status(time_delay, saved_sensor_status);
@@ -43,8 +57,7 @@ void setup()
     update_server(status_readed);
     saved_sensor_status = status_readed;
   }
-  rtcData->started = 1;
-  rtcMemory->save();
+  
   save_param("status", String(saved_sensor_status));
   delay(50);
   log("Going to sleep...");

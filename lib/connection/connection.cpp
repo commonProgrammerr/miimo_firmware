@@ -4,7 +4,7 @@ WiFiManager *wm = nullptr;
 
 String getParam(String name)
 {
-  //read parameter from server, for customhmtl input
+  // read parameter from server, for customhmtl input
   String value;
   if (wm != nullptr && wm->server->hasArg(name))
   {
@@ -44,7 +44,7 @@ String getDeviceName()
   return "MIIMO_" + macToStr(mac);
 }
 
-//gets called when WiFiManager enters configuration mode
+// gets called when WiFiManager enters configuration mode
 void wifi_config_mode_callback(WiFiManager *myWiFiManager)
 {
   delay(100);
@@ -55,7 +55,7 @@ void wifi_config_mode_callback(WiFiManager *myWiFiManager)
 
 bool wifi_connect(WiFiManager &wifi_manager)
 {
-  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  // set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifi_manager.setConfigPortalTimeout(500);
   wifi_manager.setConnectRetries(1);
   wifi_manager.setAPCallback(wifi_config_mode_callback);
@@ -76,7 +76,7 @@ bool simple_wifi_reconnect()
   WiFiManager wifi_manager;
   String SSID = wifi_manager.getWiFiSSID();
   String Pass = wifi_manager.getWiFiPass();
-  
+
   return WiFi.begin(SSID, Pass) == WL_CONNECTED;
 }
 
@@ -92,9 +92,10 @@ bool wifi_connection_setup()
   wifi_manager.setTimeout(300);
   std::vector<const char *> menu = {"wifi", "info", "sep", "exit"};
   wifi_manager.setMenu(menu);
-  //reset settings
-  // wifi_manager.resetSettings();
+  // reset settings
+  //  wifi_manager.resetSettings();
 
+  Serial.println(wifi_manager.getWiFiPass());
   if (!wifi_connect(wifi_manager))
   {
     Serial.println("[WiFi]: Falha ao connectar, tempo maximo atingido!");
