@@ -80,6 +80,15 @@ bool simple_wifi_reconnect()
   return WiFi.begin(SSID, Pass) == WL_CONNECTED;
 }
 
+void wifi_reset_config()
+{
+  WiFiManager wifi_manager;
+  wifi_manager.resetSettings();
+  save_param("config", String(1));
+  delay(5);
+  ESP.restart();
+}
+
 bool wifi_connection_setup()
 {
   WiFi.mode(WIFI_STA);

@@ -11,7 +11,6 @@ byte saved_sensor_status = 10;
 
 // rtc_store store;
 
-
 // void readFromRTCMemory() {
 //   system_rtc_mem_read(RTCMEMORYSTART, &store, sizeof(store));
 //   yield();
@@ -22,19 +21,39 @@ byte saved_sensor_status = 10;
 //   yield();
 // }
 
+void handle_wifi_configuration()
+{
+
+  int should_config = get_saved_param("config").toInt();
+  if (should_config)
+  {
+    wifi_connection_setup();
+    save_param("config", String(0));
+  }
+  else
+  {
+    for (byte i = 0; gpioRead(RESTORE_PIN) && i <= 20; i++)
+    {
+      if (i == 20)
+        wifi_reset_config();
+
+      delay(65);
+    }
+  }
+}
 
 void config()
 {
   Serial.begin(115200);
-  gpio_init(); // Initilise GPIO pins
-  delay(1000);
+  gpio_init();
+  WiFi.forceSleepBegin();
+  delay(1);
+  WiFi.forceSleepWake();
+  delay(1);
   params_start_FS();
-  wifi_connection_setup();
-  // if(store.started != 0 && ) {
-  //   store.started = 0;
-  //   readFromRTCMemory();
-  // }
+  delay(10);
   Serial.flush();
+  handle_wifi_configuration();
   saved_sensor_status = static_cast<byte>(get_saved_param("status").toInt());
   time_delay = get_saved_param("delay").toFloat();
 }
@@ -56,15 +75,17 @@ void setup()
   {
     update_server(status_readed);
     saved_sensor_status = status_readed;
+    save_param("status", String(saved_sensor_status));
+    delay(5);
   }
-  
-  save_param("status", String(saved_sensor_status));
-  delay(50);
+
   log("Going to sleep...");
   delay(3);
   Serial.flush();
   ESP.deepSleep(15e7);
+  // ESP.deepSleep(1e7, WAKE_RF_DISABLED);
 }
 
 void loop()
-{}
+{
+}
