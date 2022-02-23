@@ -12,6 +12,7 @@ String getDeviceName();
 
 //gets called when WiFiManager enters configuration mode
 void wifi_config_mode_callback(WiFiManager *myWiFiManager);
+void wifi_reset_config();
 
 bool wifi_connect(WiFiManager &wifi_manager);
 
