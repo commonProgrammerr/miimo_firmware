@@ -65,10 +65,11 @@ bool wifi_connect(WiFiManager &wifi_manager)
 
 bool wifi_reconnect()
 {
+  WiFi.mode(WIFI_STA);
   WiFiManager wifi_manager;
   wifi_manager.setConnectRetries(5);
   wifi_manager.setConfigPortalTimeout(0);
-  return wifi_manager.autoConnect();
+  return wifi_manager.autoConnect((getDeviceName() + "-crt").c_str());
 }
 
 bool simple_wifi_reconnect()
@@ -85,6 +86,7 @@ void wifi_reset_config()
   WiFiManager wifi_manager;
   wifi_manager.resetSettings();
   save_param("config", String(1));
+  save_param("status", String(10));
   delay(5);
   ESP.restart();
 }

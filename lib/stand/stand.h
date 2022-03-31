@@ -12,9 +12,8 @@ extern "C"
 #include "user_interface.h"
 }
 
-
-#define SENSOR_PIN 0
-#define RESTORE_PIN 2
+#define SENSOR_PIN D2
+#define RESTORE_PIN D1
 #define CLEAN_CODE 0
 #define ALARM_CODE 1
 #define FALSE_ALARM_CODE 3
@@ -31,7 +30,6 @@ extern "C"
 #define READ_OF_RTC_MEMO(status, memo) system_rtc_mem_read(memo, &status, sizeof(status));
 #define SAVE_IN_RTC(status) SAVE_IN_RTC_MEMO(status, 64));
 #define READ_OF_RTC(status) READ_OF_RTC_MEMO(status, 64));
-
 
 #define gpioRead(pin) (GPIO_INPUT_GET(GPIO_ID_PIN(pin)))
 #define sensor() (gpioRead(SENSOR_PIN))

@@ -5,29 +5,14 @@
 
 float time_delay = 2.0f;
 byte saved_sensor_status = 10;
-// typedef struct {
-//     int started;
-// } rtc_store;
 
-// rtc_store store;
-
-// void readFromRTCMemory() {
-//   system_rtc_mem_read(RTCMEMORYSTART, &store, sizeof(store));
-//   yield();
-// }
-
-// void writeToRTCMemory() {
-//   system_rtc_mem_write(RTCMEMORYSTART, &store, 4);
-//   yield();
-// }
 
 void handle_wifi_configuration()
 {
 
   int should_config = get_saved_param("config").toInt();
-  if (should_config)
+  if (should_config && wifi_connection_setup())
   {
-    wifi_connection_setup();
     save_param("config", String(0));
   }
   else
