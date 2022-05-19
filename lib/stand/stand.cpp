@@ -18,9 +18,9 @@ byte get_sensor_status(float time, byte last_status)
   {
     read[2] = get_debounced_status(time * 140);
     log_value("[status]: sensor_read[2] = ", read[2]);
-    
+
     bool __ = read[1] == read[0] && read[2] != read[0];
-    
+
     return __ ? FALSE_ALARM_CODE : read[2];
   }
 
@@ -59,10 +59,12 @@ bool update_server(byte code)
   }
 }
 
-void led_on() {
+void led_on()
+{
   // GPIO_OUTPUT_SET(GPIO_ID_PIN(RESTORE_PIN), LOW);
 }
 
-void led_off() {
+void led_off()
+{
   // GPIO_OUTPUT_SET(GPIO_ID_PIN(RESTORE_PIN), HIGH);
 }

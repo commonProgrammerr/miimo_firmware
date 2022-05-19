@@ -40,5 +40,4 @@ byte get_debounced_status(float time);
 bool update_server(byte code);
 void led_on();
 void led_off();
-
 #endif
