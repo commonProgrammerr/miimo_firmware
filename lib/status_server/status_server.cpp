@@ -24,12 +24,12 @@ bool update_status_on_server(byte status, String client_id)
     // WiFiClient client;
     WiFiClientSecure client;
     HTTPClient http;
-    String url_query = (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status);
+    String url_query = (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status) + "&power=" + String(ESP.getVcc());
     client.setInsecure();
     client.connect(url_query, 443);
 
     Serial.println("[HTTP]: Enviando status... ");
-    bool http_sucess_connection =  http.begin(client, url_query);
+    bool http_sucess_connection = http.begin(client, url_query);
     if (http_sucess_connection)
     {
       Serial.println("[HTTP]: Aguardando retorno...");

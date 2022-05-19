@@ -28,7 +28,7 @@ String get_saved_param(String param_name)
     return "";
   }
 
-  String param_value = param_file.readStringUntil('\r'); //desconsidera '\r\n'
+  String param_value = param_file.readStringUntil('\r'); // desconsidera '\r\n'
   Serial.println("[FS Get - " + param_name + "]: " + param_value);
   param_file.close();
 
@@ -49,6 +49,7 @@ void params_start_FS()
   init_param("delay", "2.0");
   init_param("status", "10");
   init_param("config", "1");
+  init_param("count", "0");
 }
 
 void init_param(String param, String value)

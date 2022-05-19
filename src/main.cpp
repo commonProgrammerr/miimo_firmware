@@ -1,12 +1,15 @@
 #include <Arduino.h>
 #include <stand.h>
 
+#define SLEEP_TIME_SECONDS 120
+#define SLEEP_TIME_MICROSECONDS SLEEP_TIME_SECONDS * 1e6
+#define SLEEP_TIME_GOAL ((60 * 60 * 2) / SLEEP_TIME_SECONDS) // seg * min * horas / seg
 #define RTCMEMORYSTART 65
+ADC_MODE(ADC_VCC);
 
 float time_delay = 2.0f;
 byte saved_sensor_status = 10;
-
-
+int count = 0;
 void handle_wifi_configuration()
 {
 
@@ -41,6 +44,7 @@ void config()
   handle_wifi_configuration();
   saved_sensor_status = static_cast<byte>(get_saved_param("status").toInt());
   time_delay = get_saved_param("delay").toFloat();
+  count = get_saved_param("count").toInt();
 }
 
 void setup()
@@ -51,10 +55,13 @@ void setup()
   byte status_readed = get_sensor_status(time_delay, saved_sensor_status);
   log_value("[main]: final status = ", status_readed);
 
-  if (status_readed == FALSE_ALARM_CODE)
+  if (status_readed == FALSE_ALARM_CODE && count >= SLEEP_TIME_GOAL)
   {
     if (update_server(status_readed))
+    {
       saved_sensor_status = sensor();
+      count = 0;
+    }
   }
   else if (status_readed != saved_sensor_status)
   {
@@ -63,12 +70,11 @@ void setup()
     save_param("status", String(saved_sensor_status));
     delay(5);
   }
-
+  save_param("count", String(count + 1));
   log("Going to sleep...");
   delay(3);
   Serial.flush();
-  ESP.deepSleep(15e7);
-  // ESP.deepSleep(1e7, WAKE_RF_DISABLED);
+  ESP.deepSleep(SLEEP_TIME_MICROSECONDS);
 }
 
 void loop()
