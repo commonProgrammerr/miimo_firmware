@@ -7,8 +7,8 @@
 #include <ESP8266WebServerSecure.h>
 
 #ifndef SERVER_URL
-#define SERVER_URL "https://socketio-teste.herokuapp.com/"
-// #define SERVER_URL "http://192.168.15.31:3030/"
+#define SERVER_URL "https://socketio-teste.herokuapp.com/" // 192.168.230.221
+// #define SERVER_URL "http://192.168.230.117:3030/" // 192.168.230.117
 // #define SERVER_URL "http://miimo.a4rsolucoes.com.br/apis/registro/"
 #define ID_PARAM "API"
 #define VALUE_PARAM "VALOR"

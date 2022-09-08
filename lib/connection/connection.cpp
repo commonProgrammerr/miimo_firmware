@@ -85,9 +85,12 @@ void wifi_reset_config()
 {
   WiFiManager wifi_manager;
   wifi_manager.resetSettings();
-  save_param("config", String(1));
-  save_param("status", String(10));
-  delay(5);
+  save_param("config", "1");
+  save_param("status", "10");
+  save_param("status", "0");
+  save_param("count", "0");
+  save_param("DEBOUNCE", "0");
+  delay(10);
   ESP.restart();
 }
 

@@ -35,7 +35,7 @@ extern "C"
 #define sensor() (gpioRead(SENSOR_PIN))
 #define await(t) (delay(static_cast<long>(t)))
 
-byte get_sensor_status(float time, byte last_status);
+byte get_sensor_status(byte last_status);
 byte get_debounced_status(float time);
 bool update_server(byte code);
 void led_on();
