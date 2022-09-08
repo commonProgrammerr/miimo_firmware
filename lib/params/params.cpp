@@ -50,6 +50,7 @@ void params_start_FS()
   init_param("status", "10");
   init_param("config", "1");
   init_param("count", "0");
+  init_param("DEBOUNCE", "0");
 }
 
 void init_param(String param, String value)

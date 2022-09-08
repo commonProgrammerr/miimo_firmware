@@ -27,6 +27,7 @@ bool update_status_on_server(byte status, String client_id)
     String url_query = (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status) + "&power=" + String(ESP.getVcc());
     client.setInsecure();
     client.connect(url_query, 443);
+    // client.connect(url_query, 3030);
 
     Serial.println("[HTTP]: Enviando status... ");
     bool http_sucess_connection = http.begin(client, url_query);
