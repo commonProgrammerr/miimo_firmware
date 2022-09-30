@@ -1,3 +1,4 @@
+#ifdef ESP8266
 #include "params.h"
 
 bool is_file_system_enabled = false;
@@ -63,3 +64,4 @@ void init_param(String param, String value)
     save_param(param, value);
   }
 }
+#endif

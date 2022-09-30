@@ -1,5 +1,6 @@
 #ifndef _CONNECTION_H
 #define _CONNECTION_H
+#ifdef ESP8266
 
 #include "params.h"
 #include <Arduino.h>
@@ -10,7 +11,7 @@
 String macToStr(const uint8_t *mac);
 String getDeviceName();
 
-//gets called when WiFiManager enters configuration mode
+// gets called when WiFiManager enters configuration mode
 void wifi_config_mode_callback(WiFiManager *myWiFiManager);
 void wifi_reset_config();
 
@@ -20,4 +21,5 @@ bool wifi_reconnect();
 
 bool wifi_connection_setup();
 
+#endif
 #endif

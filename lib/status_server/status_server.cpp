@@ -1,3 +1,4 @@
+#ifdef ESP8266
 #include "status_server.h"
 
 bool check_http_response(HTTPClient &http)
@@ -56,3 +57,4 @@ bool update_status_on_server(byte status, String client_id)
     return false;
   }
 }
+#endif

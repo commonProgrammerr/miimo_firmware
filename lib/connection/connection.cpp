@@ -1,5 +1,6 @@
 #include "connection.h"
 
+#ifdef ESP8266
 WiFiManager *wm = nullptr;
 
 String getParam(String name)
@@ -123,3 +124,5 @@ bool wifi_connection_setup()
     return true;
   }
 }
+
+#endif
