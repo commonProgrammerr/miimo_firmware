@@ -1,5 +1,6 @@
 #ifndef __STAND_H
 #define __STAND_H
+#ifdef ESP8266
 
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
@@ -28,16 +29,19 @@ extern "C"
 
 #define SAVE_IN_RTC_MEMO(status, memo) system_rtc_mem_write(memo, &status, sizeof(status));
 #define READ_OF_RTC_MEMO(status, memo) system_rtc_mem_read(memo, &status, sizeof(status));
-#define SAVE_IN_RTC(status) SAVE_IN_RTC_MEMO(status, 64));
-#define READ_OF_RTC(status) READ_OF_RTC_MEMO(status, 64));
+#define SAVE_IN_RTC(status) (SAVE_IN_RTC_MEMO(status, 64));
+#define READ_OF_RTC(status) (READ_OF_RTC_MEMO(status, 64));
 
 #define gpioRead(pin) (GPIO_INPUT_GET(GPIO_ID_PIN(pin)))
+#define gpioWrite(pin, value) (GPIO_OUTPUT_SET(GPIO_ID_PIN(pin), value))
 #define sensor() (gpioRead(SENSOR_PIN))
 #define await(t) (delay(static_cast<long>(t)))
 
-byte get_sensor_status(byte last_status);
+// byte get_sensor_status(byte last_status);
+byte get_sensor_status(byte last_status, long max);
 byte get_debounced_status(float time);
 bool update_server(byte code);
 void led_on();
 void led_off();
+#endif
 #endif

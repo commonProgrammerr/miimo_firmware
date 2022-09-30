@@ -1,5 +1,6 @@
 #ifndef _STATUS_SERVER_H
 #define _STATUS_SERVER_H
+#ifdef ESP8266
 
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
@@ -16,4 +17,5 @@
 
 bool check_http_response(HTTPClient &http);
 bool update_status_on_server(byte status, String clientID);
+#endif
 #endif

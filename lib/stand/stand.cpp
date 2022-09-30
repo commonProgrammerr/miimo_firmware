@@ -1,10 +1,11 @@
 
+#ifdef ESP8266
 #include <stand.h>
 
-byte get_sensor_status(byte last_status)
+byte get_sensor_status(byte last_status, long max)
 {
   byte read = sensor();
-  int debounce = get_saved_param("DEBOUNCE").toInt();
+  long debounce = get_saved_param("DEBOUNCE").toInt();
   if (read == last_status && debounce == 0)
   {
     return read;
@@ -18,13 +19,13 @@ byte get_sensor_status(byte last_status)
       save_param("DEBOUNCE", "0");
     return 0;
   }
-  else if (read == 0 && debounce >= 4)
+  else if (read == 0 && debounce >= max)
   {
     if (debounce != 0)
       save_param("DEBOUNCE", "0");
     return FALSE_ALARM_CODE;
   }
-  else if (read == 1 && debounce <= 4)
+  else if (read == 1 && debounce <= max)
   {
 
     save_param("DEBOUNCE", String(debounce + 1));
@@ -79,3 +80,4 @@ void led_off()
 {
   // GPIO_OUTPUT_SET(GPIO_ID_PIN(RESTORE_PIN), HIGH);
 }
+#endif
