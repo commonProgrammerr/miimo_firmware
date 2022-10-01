@@ -47,26 +47,25 @@ byte get_debounced_status(float time)
 
 bool update_server(byte code)
 {
-  WiFi.mode(WIFI_STA);
-  if (wifi_reconnect())
+  if (WiFi.status() == WL_CONNECTED || wifi_reconnect())
   {
-    log("[main]: Conectado!");
-    log("[main]: Enviando...");
+    logln("[main]: Conectado!");
+    logln("[main]: Enviando...");
     log_value("[main]: Sensor status: ", code);
     if (update_status_on_server(code, getDeviceName().substring(6)))
     {
-      log("Sucesso!");
+      logln("Sucesso!");
       return true;
     }
     else
     {
-      log("Error!");
+      logln("Error!");
       return false;
     }
   }
   else
   {
-    log("[WiFi]: Wifi indisponivel!");
+    logln("[WiFi]: Wifi indisponivel!");
     return false;
   }
 }
