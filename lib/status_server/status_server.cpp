@@ -1,5 +1,6 @@
 #ifdef ESP8266
 #include "status_server.h"
+#include "../logs/logs.h"
 
 bool check_http_response(HTTPClient &http)
 {
@@ -19,7 +20,7 @@ bool check_http_response(HTTPClient &http)
 
 bool update_status_on_server(byte status, String client_id)
 {
-  Serial.print("[HTTP]: Verificando conexão...\n");
+  log("[HTTP]: Verificando conexão...\n");
   if ((WiFi.status() == WL_CONNECTED))
   {
     // WiFiClient client;
@@ -39,7 +40,7 @@ bool update_status_on_server(byte status, String client_id)
       if (http_sucess_response)
       {
         Serial.println("[HTTP]: Return = \"" + http.getString() + "\"");
-        Serial.flush();
+        log_flush();
       }
       http.end();
 
