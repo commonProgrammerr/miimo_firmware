@@ -82,9 +82,9 @@ void setup()
 
 void loop()
 {
-  attiny_serial.print("sensor:");
+  attiny_serial.print(F("sensor:"));
   attiny_serial.println(saved_sensor_status);
-  attiny_serial.println("loop...");
+  attiny_serial.println(F("loop..."));
   delay(1000);
 }
 
@@ -113,8 +113,8 @@ void config()
   Serial.begin(115200);
   setup_pins();
   delay(100);
-  attiny_serial.begin(57600, SWSERIAL_8N1, 9, 5U, false, 12);
-  attiny_serial.println("\n\n\n\n");
+  attiny_serial.begin(100, SWSERIAL_8N1, 9, 5U, true, 12);
+  attiny_serial.println(F("\n\n\n\n"));
 
   WiFi.forceSleepBegin();
   delay(1);
@@ -195,7 +195,7 @@ void setup()
   digitalWrite(AWAKE_ESP_PIN, 0);
   digitalWrite(AvisoAlarme, 0);
 
-  esp_serial.begin(115200);
+  esp_serial.begin(57600);
 }
 
 void loop()
