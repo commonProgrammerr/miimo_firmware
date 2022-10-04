@@ -2,6 +2,25 @@
 #include "status_server.h"
 #include "../logs/logs.h"
 
+#define DC_ADC_Divider 7.6923  // divisor ADC para barramento DC 10k/1k = 10
+#define ADC_REF_Voltage 1000.0 // TensÃ£o de alimentacao (mV)
+
+float getBatteryValue()
+{
+  delay(2);
+  digitalWrite(16U, HIGH);
+  delay(10);
+  int ADCValue = 0; // value read from ADC
+  ADCValue += analogRead(A0);
+  ADCValue += analogRead(A0);
+  ADCValue += analogRead(A0);
+  ADCValue += analogRead(A0);
+  digitalWrite(16U, LOW);
+  float value = (ADCValue / 4) * (DC_ADC_Divider * ADC_REF_Voltage / 1023000UL);
+  log_value("[ADC]: Battery current value = ", value);
+  return value;
+}
+
 bool check_http_response(HTTPClient &http)
 {
   int httpCode = http.GET();
@@ -26,7 +45,7 @@ bool update_status_on_server(byte status, String client_id)
     // WiFiClient client;
     WiFiClientSecure client;
     HTTPClient http;
-    String url_query = (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status) + "&power=" + String(ESP.getVcc());
+    String url_query = (SERVER_URL "?" ID_PARAM "=") + String(client_id) + ("&" VALUE_PARAM "=") + String(status) + "&power=" + String(getBatteryValue());
     client.setInsecure();
     client.connect(url_query, 443);
     // client.connect(url_query, 3030);
