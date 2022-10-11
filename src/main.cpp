@@ -14,20 +14,6 @@
 #ifdef ESP8266
 // #define DISABLE_DEBUG_LOG
 #include <stand.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600);
-
-#define SLEEP_TIME_SECONDS 10
-#define SELFCHECK_TIME_HOURS 2
-#define SLEEP_TIME_MICROSECONDS SLEEP_TIME_SECONDS * 1e6
-#define SLEEP_TIME_GOAL ((60 * 60 * SELFCHECK_TIME_HOURS) / SLEEP_TIME_SECONDS) // seg * min * horas / seg
-
-float time_delay = 2.0f;
-byte saved_sensor_status = 10;
-uint64_t saved_time = 0;
 
 void handle_wifi_configuration();
 void config();
@@ -47,18 +33,22 @@ void setup()
     save_param("status", String(saved_sensor_status));
     delay(5);
   }
-  else
-  {
-    while (!timeClient.update())
-      yield();
+  // else
+  // {
+  //   log_value("[time]: saved epoch time = ", saved_time);
+  //   logln("[time]: updating time...");
+  //   timeClient.forceUpdate();
+  //   yield();
+  //   logln("[time]: done!");
+  //   log_value("[time]: current epoch time = ", timeClient.getEpochTime());
+  //   if (timeClient.getEpochTime() - saved_time > (u_hours(2) / 1000))
+  //   {
+  //     saved_time = timeClient.getEpochTime();
+  //     save_param("time", String(saved_time));
+  //     update_server(status_readed);
+  //   }
+  // }
 
-    if (timeClient.getEpochTime() - saved_time > (u_hours(2) / 1000))
-    {
-      update_server(status_readed);
-      saved_time = timeClient.getEpochTime();
-      save_param("time", String(saved_time));
-    }
-  }
   esp_hard_sleep();
 }
 
@@ -73,14 +63,15 @@ void handle_wifi_configuration()
   if (should_config && wifi_connection_setup())
   {
     save_param("config", String(0));
-    timeClient.begin();
+    // timeClient.begin();
+    // timeClient.update();
   }
   else
   {
-    for (byte i = 0; !gpioRead(RESTORE_PIN) && i <= 20; i++)
+    for (byte i = 0; !digitalRead(RESTORE_PIN) && i <= 20; i++)
     {
       Serial.print("Reset pin read: ");
-      Serial.println(!gpioRead(RESTORE_PIN));
+      Serial.println(!digitalRead(RESTORE_PIN));
       if (i == 20)
         wifi_reset_config();
 
@@ -93,6 +84,7 @@ void config()
 {
   Serial.begin(115200);
   setup_pins();
+  digitalWrite(SLEEP_PIN, LOW);
   delay(100);
   WiFi.forceSleepBegin();
   delay(1);
@@ -110,21 +102,20 @@ void config()
 
 void esp_hard_sleep()
 {
-  logln("going to sleep...");
-  delayMicroseconds(600);
+  logln(F("going to sleep..."));
   digitalWrite(SLEEP_PIN, HIGH);
 }
 #endif
 
 #ifdef __AVR_ATtiny85__
 #include "tinysnore.h"
-// #include "SoftwareSerial.h"
-//*********************************PINOS************************************
-// #define RESET_ESP_PIN PB1 // saida para avisar que ligou o ESP por alarme
-#define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
-#define SLEEP_ESP_PIN PB2 // PB2 - ENTRADA: serial whit esp...
 
-#define AWAKE_VALUE 0
+//*********************************PINOS************************************
+#define TX_ESP_PIN PB1    // saida para avisar que ligou o ESP por alarme
+#define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
+#define SLEEP_ESP_PIN PB2
+
+#define AWAKE_VALUE 380
 #define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
 
 uint8_t espec_value = HIGH;
@@ -133,30 +124,38 @@ uint64_t time = millis();
 
 #define await_esp() \
   time = millis();  \
-  while (digitalRead(SLEEP_ESP_PIN) != LOW && (millis() - time) <= u_minutes(MAX_AWAKE_TIME))
+  while (get_sleep_status() == HIGH && u_seconds(20) > (millis() - time))
 
 #define __sleep_esp__() \
   digitalWrite(AWAKE_ESP_PIN, LOW)
 
 #define __awake_esp__() \
-  digitalWrite(AWAKE_ESP_PIN, HIGH)
+  digitalWrite(AWAKE_ESP_PIN, HIGH);
 
 #define sensor_read() \
   static_cast<int>((analogRead(A3) + analogRead(A3) + analogRead(A3)) / 3)
 
+#define get_sleep_status() \
+  digitalRead(SLEEP_ESP_PIN)
+
 #define get_sensor_status() \
   sensor_read() >= AWAKE_VALUE ? HIGH : LOW
 
+#define pass_status() \
+  digitalWrite(TX_ESP_PIN, get_sensor_status())
+
 bool debounce_value()
 {
-  for (uint8_t times = 8; times > 0; times--)
-  {
-    if (get_sensor_status() != current_value)
-      return false;
-    snore(u_seconds(2));
-  }
+  if (current_value == espec_value)
+    snore(u_seconds(15));
+  // for (uint8_t times = 8; times > 0; times--)
+  // {
+  //   if (get_sensor_status() != espec_value)
+  //     return false;
+  //   delay(u_seconds(2));
+  // }
 
-  return true;
+  return current_value == espec_value;
 }
 
 void setup()
@@ -164,31 +163,32 @@ void setup()
 
   pinMode(AWAKE_ESP_PIN, OUTPUT);
   pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
-  digitalWrite(AWAKE_ESP_PIN, HIGH);
-  delay(100);
-  digitalWrite(AWAKE_ESP_PIN, digitalRead(SLEEP_ESP_PIN));
+  pinMode(TX_ESP_PIN, OUTPUT);
+  digitalWrite(TX_ESP_PIN, LOW);
 
-  // while (digitalRead(SLEEP_ESP_PIN) != LOW)
-  // {
-  //   digitalWrite(AWAKE_ESP_PIN, HIGH);
-  //   snore(200);
-  // }
+  __awake_esp__();
+
+  while (get_sleep_status() == HIGH)
+    snore(100);
+
+  __sleep_esp__();
 }
 
 void loop()
 {
-  digitalWrite(AWAKE_ESP_PIN, digitalRead(SLEEP_ESP_PIN));
-  delay(7000);
-  // snore(SLEEP_STEP);
-  // current_value = get_sensor_status();
-  // if ((current_value == espec_value && debounce_value()) || (millis() / u_hours(1)) > 2)
-  // {
-  //   __awake_esp__();
-  //   await_esp()
-  //   {
-  //     snore(SLEEP_STEP);
-  //   }
-  //   __sleep_esp__();
-  // }
+
+  snore(SLEEP_STEP);
+  current_value = get_sensor_status();
+  if (debounce_value() || !(millis() % u_hours(2)))
+  {
+    __awake_esp__();
+    pass_status();
+    await_esp()
+        snore(SLEEP_STEP);
+
+    espec_value = !current_value;
+
+    __sleep_esp__();
+  }
 }
 #endif
