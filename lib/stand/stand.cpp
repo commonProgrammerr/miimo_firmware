@@ -2,7 +2,7 @@
 #ifdef ESP8266
 #include <stand.h>
 
-WiFiUDP ntpUDP;
+// WiFiUDP ntpUDP;
 // NTPClient timeClient(ntpUDP, "a.st1.ntp.br");
 float time_delay = 2.0f;
 byte saved_sensor_status = 10;

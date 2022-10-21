@@ -2,17 +2,12 @@
 
 #define SLEEP_STEP 500
 
-#define seconds(s) (s * 1000)
-#define u_seconds(s) (s * 1000U)
-#define minutes(_minutes) (_minutes * seconds(60))
-#define u_minutes(_minutes) (_minutes * u_seconds(60))
-#define hours(_hours) (_hours * minutes(60))
-#define u_hours(_hours) (_hours * u_minutes(60))
-#define days(_days) (_days * hours(24))
-#define u_days(_days) (_days * u_hours(24))
+#include <dto.h>
+#include <pins.h>
 
 #ifdef ESP8266
 // #define DISABLE_DEBUG_LOG
+#include <times.h>
 #include <stand.h>
 
 void handle_wifi_configuration();
@@ -33,21 +28,6 @@ void setup()
     save_param("status", String(saved_sensor_status));
     delay(5);
   }
-  // else
-  // {
-  //   log_value("[time]: saved epoch time = ", saved_time);
-  //   logln("[time]: updating time...");
-  //   timeClient.forceUpdate();
-  //   yield();
-  //   logln("[time]: done!");
-  //   log_value("[time]: current epoch time = ", timeClient.getEpochTime());
-  //   if (timeClient.getEpochTime() - saved_time > (u_hours(2) / 1000))
-  //   {
-  //     saved_time = timeClient.getEpochTime();
-  //     save_param("time", String(saved_time));
-  //     update_server(status_readed);
-  //   }
-  // }
 
   esp_hard_sleep();
 }
@@ -63,8 +43,9 @@ void handle_wifi_configuration()
   if (should_config && wifi_connection_setup())
   {
     save_param("config", String(0));
-    // timeClient.begin();
-    // timeClient.update();
+    DTO dto;
+    time_delay = get_saved_param("delay").toFloat();
+    set_dto_data(dto, &time_delay);
   }
   else
   {
@@ -103,7 +84,12 @@ void config()
 void esp_hard_sleep()
 {
   logln(F("going to sleep..."));
-  digitalWrite(SLEEP_PIN, HIGH);
+
+  DTO _dto;
+  _dto.signal = SIG_SLEEP;
+  _dto.data[0] = saved_sensor_status;
+  _dto.size = 1U;
+  send_dto(attiny_serial, _dto);
 }
 #endif
 

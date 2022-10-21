@@ -25,7 +25,7 @@ byte get_sensor_status(byte last_status, long max);
 byte get_debounced_status(float time);
 bool update_server(byte code);
 
-extern WiFiUDP ntpUDP;
+// extern WiFiUDP ntpUDP;
 // extern NTPClient timeClient;
 
 extern float time_delay;
