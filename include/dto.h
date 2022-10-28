@@ -3,77 +3,93 @@
 
 #include "stdint.h"
 
+#define SIG_CONFIG 0x0
 #define SIG_AWAKE 0x1
 #define SIG_SLEEP 0x2
 #define SIG_TIME 0x3
-#define SIG_CONFIG 0x0
 #define SIG_DEBOUNCE 0x4
+#define SIG_READY 0x6
 
 #define data_size(data, t) sizeof(t) > 1 ? sizeof(t) : sizeof(data)
-
-template <typename T>
-bool get_dto_data(DTO dto, T *data);
-template <typename T>
-bool set_dto_data(DTO *dto, T *data);
-size_t read_dto(Stream &serial, DTO *data);
-size_t send_dto(Stream &serial, DTO data);
 
 typedef struct
 {
   uint8_t signal;
   uint8_t data[4];
   uint8_t size;
-} DTO;
+} Data;
 
-template <typename T>
-bool get_dto_data(DTO dto, T *data)
+class DTO
 {
-  size_t _size = data_size(data, T);
-  if (_size > 4 || dto.size != _size)
-    return false;
+private:
+  Data dto;
+  Stream *serial;
 
-  else
-    for (uint8_t i = 0; i < dto.size; i++)
-      *(((uint8_t)data)[i]) = dto.data[i];
+public:
+  DTO(Stream &_serial) { serial = &_serial; }
+  ~DTO() { free(this); }
 
-  return true;
-}
-
-template <typename T>
-bool set_dto_data(DTO *dto, T *data)
-{
-  size_t _size = data_size(data, T);
-
-  if (_size > 4)
-    return false;
-
-  else
+  template <typename T>
+  bool get_data(T *data)
   {
-    dto->size = _size;
-    for (uint8_t i = 0; i < dto->size; i++)
-      dto->data[i] = *(((uint8_t)data)[i]);
+    size_t _size = data_size(data, T);
+    if (_size > 4 || this->dto.size != _size)
+      return false;
+
+    else
+      for (uint8_t i = 0; i < this->dto.size; i++)
+        *(((uint8_t)data)[i]) = this->dto.data[i];
+
+    return true;
   }
 
-  return true;
-}
+  template <typename T>
+  bool set_data(T *data)
+  {
+    size_t _size = data_size(data, T);
+    if (_size > 4)
+      return false;
 
-size_t send_dto(Stream &serial, DTO data) { return serial.write((byte *)&data, 6); }
+    else
+    {
+      this->dto.size = _size;
+      for (uint8_t i = 0; i < this->dto.size; i++)
+        this->dto.data[i] = *(((uint8_t)data)[i]);
+    }
 
-size_t read_dto(Stream &serial, DTO *data) { return serial.readBytes((byte *)data, 6); }
+    return true;
+  }
 
-// DTO dto(uint8 sig, const uint8 *data, size_t size)
-// {
-//   DTO dto;
-//   dto.signal = sig;
+  void set_signal(uint8_t _signal) { this->dto.signal = _signal; }
+  uint8_t get_signal() { return this->dto.signal; }
 
-//   for (uint8 i = 0; i < size; i++)
-//     dto.data[i] = data[i];
+  size_t send() { return serial->write((byte *)&dto, 6); }
+  size_t read() { return serial->readBytes((byte *)&dto, 6); }
+  size_t read(Data &obj) { return serial->readBytes((byte *)&obj, 6); }
 
-//   dto.size = size;
+  template <typename T>
+  size_t send(T *data) { return set_data(data) ? send() : -1; }
 
-//   return dto;
-// }
+  template <typename T>
+  size_t send(uint8_t sig, T *data)
+  {
+    set_signal(sig);
+    return send(data);
+  }
 
-// DTO dto(uint8 sig, const uint8 *data) { return dto(sig, data, sizeof(data)); }
+  template <typename T>
+  size_t read(uint8_t &sig, T *data)
+  {
+    read(data);
+    sig = get_signal();
+  }
+
+  template <typename T>
+  size_t read(T *data)
+  {
+    size_t bytes = read();
+    return bytes > 0 ? get_data(data) ? bytes : -1 : bytes;
+  }
+};
 
 #endif

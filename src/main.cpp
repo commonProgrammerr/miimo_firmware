@@ -1,18 +1,21 @@
 #include <Arduino.h>
 
 #define SLEEP_STEP 500
+#define sw_serial_speed 9600
 
+#include <times.h>
 #include <dto.h>
 #include <pins.h>
 
 #ifdef ESP8266
 // #define DISABLE_DEBUG_LOG
-#include <times.h>
 #include <stand.h>
 
 void handle_wifi_configuration();
 void config();
 void esp_hard_sleep();
+
+DTO dto(attiny_serial);
 
 void setup()
 {
@@ -43,9 +46,8 @@ void handle_wifi_configuration()
   if (should_config && wifi_connection_setup())
   {
     save_param("config", String(0));
-    DTO dto;
     time_delay = get_saved_param("delay").toFloat();
-    set_dto_data(dto, &time_delay);
+    dto.send(SIG_CONFIG, &time_delay);
   }
   else
   {
@@ -64,6 +66,8 @@ void handle_wifi_configuration()
 void config()
 {
   Serial.begin(115200);
+  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN, false, 8);
+
   setup_pins();
   digitalWrite(SLEEP_PIN, LOW);
   delay(100);
@@ -84,33 +88,33 @@ void config()
 void esp_hard_sleep()
 {
   logln(F("going to sleep..."));
-
-  DTO _dto;
-  _dto.signal = SIG_SLEEP;
-  _dto.data[0] = saved_sensor_status;
-  _dto.size = 1U;
-  send_dto(attiny_serial, _dto);
+  dto.send(SIG_SLEEP, &saved_sensor_status);
 }
 #endif
 
 #ifdef __AVR_ATtiny85__
 #include "tinysnore.h"
+#include "SoftwareSerial.h"
 
 //*********************************PINOS************************************
-#define TX_ESP_PIN PB1    // saida para avisar que ligou o ESP por alarme
+#define TX_ESP_PIN PB1 // saida para avisar que ligou o ESP por alarme
+#define RX_ESP_PIN PB2
 #define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
-#define SLEEP_ESP_PIN PB2
 
 #define AWAKE_VALUE 380
 #define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
 
+SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN);
+DTO dto(esp_serial);
+
 uint8_t espec_value = HIGH;
 uint8_t current_value = LOW;
 uint64_t time = millis();
+float debounce_delay = 15.0;
 
-#define await_esp() \
-  time = millis();  \
-  while (get_sleep_status() == HIGH && u_seconds(20) > (millis() - time))
+#define __await(condition) \
+  time = millis();         \
+  while (!condition && seconds_ms(20U) > (millis() - time))
 
 #define __sleep_esp__() \
   digitalWrite(AWAKE_ESP_PIN, LOW)
@@ -118,22 +122,34 @@ uint64_t time = millis();
 #define __awake_esp__() \
   digitalWrite(AWAKE_ESP_PIN, HIGH);
 
-#define sensor_read() \
-  static_cast<int>((analogRead(A3) + analogRead(A3) + analogRead(A3)) / 3)
+byte get_sleep_status()
+{
+  byte data;
+  byte sig = 0x0;
+  while (sig != SIG_SLEEP)
+    dto.read(sig, &data);
 
-#define get_sleep_status() \
-  digitalRead(SLEEP_ESP_PIN)
+  return data;
+}
 
 #define get_sensor_status() \
   sensor_read() >= AWAKE_VALUE ? HIGH : LOW
 
-#define pass_status() \
-  digitalWrite(TX_ESP_PIN, get_sensor_status())
+int sensor_read()
+{
+  int read = analogRead(A3);
+  delayMicroseconds(420);
+  read += analogRead(A3);
+  delayMicroseconds(420);
+  read += analogRead(A3);
+
+  return static_cast<int>(read / 3);
+}
 
 bool debounce_value()
 {
   if (current_value == espec_value)
-    snore(u_seconds(15));
+    snore(seconds_ms(15U));
   // for (uint8_t times = 8; times > 0; times--)
   // {
   //   if (get_sensor_status() != espec_value)
@@ -148,14 +164,24 @@ void setup()
 {
 
   pinMode(AWAKE_ESP_PIN, OUTPUT);
-  pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
+  esp_serial.begin(sw_serial_speed);
+  // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
   pinMode(TX_ESP_PIN, OUTPUT);
   digitalWrite(TX_ESP_PIN, LOW);
 
   __awake_esp__();
 
-  while (get_sleep_status() == HIGH)
-    snore(100);
+  __await(dto.get_signal() == SIG_READY)
+  {
+    dto.read();
+    if (dto.get_signal() == SIG_CONFIG)
+    {
+      dto.get_data(&debounce_delay);
+      break;
+    }
+    else
+      delayMicroseconds(10);
+  }
 
   __sleep_esp__();
 }
@@ -165,12 +191,19 @@ void loop()
 
   snore(SLEEP_STEP);
   current_value = get_sensor_status();
-  if (debounce_value() || !(millis() % u_hours(2)))
+  if (debounce_value() || !(millis() % hours_ms(2)))
   {
     __awake_esp__();
-    pass_status();
-    await_esp()
-        snore(SLEEP_STEP);
+
+    dto.send(SIG_AWAKE, &current_value);
+    Data data;
+    __await(data.signal == SIG_SLEEP)
+    {
+      dto.read(&data);
+      snore(SLEEP_STEP);
+    }
+
+    current_value = data.data[0];
 
     espec_value = !current_value;
 
