@@ -4,7 +4,6 @@
 #define sw_serial_speed 9600
 
 #include <times.h>
-#include <dto.h>
 #include <pins.h>
 
 #ifdef ESP8266
@@ -15,28 +14,30 @@ void handle_wifi_configuration();
 void config();
 void esp_hard_sleep();
 
-DTO dto(attiny_serial);
-
 void setup()
 {
   config();
   log_value("[main]: delay time = ", time_delay);
   log_value("[main]: saved status = ", saved_sensor_status);
-  byte status_readed = sensor();
-  log_value("[main]: current status = ", status_readed);
-  if (status_readed != saved_sensor_status)
-  {
-    update_server(status_readed);
-    saved_sensor_status = status_readed;
-    save_param("status", String(saved_sensor_status));
-    delay(5);
-  }
+  // byte status_readed = sensor();
+  // log_value("[main]: current status = ", status_readed);
+  // if (status_readed != saved_sensor_status)
+  // {
+  //   update_server(status_readed);
+  //   saved_sensor_status = status_readed;
+  //   save_param("status", String(saved_sensor_status));
+  //   delay(5);
+  // }
 
-  esp_hard_sleep();
+  // esp_hard_sleep();
 }
 
 void loop()
 {
+  while (attiny_serial.available())
+  {
+    Serial.write(attiny_serial.read());
+  }
 }
 
 void handle_wifi_configuration()
@@ -47,7 +48,7 @@ void handle_wifi_configuration()
   {
     save_param("config", String(0));
     time_delay = get_saved_param("delay").toFloat();
-    dto.send(SIG_CONFIG, &time_delay);
+    // dto.send(SIG_CONFIG, &time_delay);
   }
   else
   {
@@ -66,10 +67,9 @@ void handle_wifi_configuration()
 void config()
 {
   Serial.begin(115200);
-  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN, false, 8);
+  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN);
 
   setup_pins();
-  digitalWrite(SLEEP_PIN, LOW);
   delay(100);
   WiFi.forceSleepBegin();
   delay(1);
@@ -88,7 +88,6 @@ void config()
 void esp_hard_sleep()
 {
   logln(F("going to sleep..."));
-  dto.send(SIG_SLEEP, &saved_sensor_status);
 }
 #endif
 
@@ -105,7 +104,8 @@ void esp_hard_sleep()
 #define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
 
 SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN);
-DTO dto(esp_serial);
+// DTO dto(esp_serial);
+// soft_ring_buffer *serial_buffer = Serial._rx_buffer;
 
 uint8_t espec_value = HIGH;
 uint8_t current_value = LOW;
@@ -122,18 +122,8 @@ float debounce_delay = 15.0;
 #define __awake_esp__() \
   digitalWrite(AWAKE_ESP_PIN, HIGH);
 
-byte get_sleep_status()
-{
-  byte data;
-  byte sig = 0x0;
-  while (sig != SIG_SLEEP)
-    dto.read(sig, &data);
-
-  return data;
-}
-
-#define get_sensor_status() \
-  sensor_read() >= AWAKE_VALUE ? HIGH : LOW
+#define get_sensor_status(read) \
+  read >= AWAKE_VALUE ? HIGH : LOW
 
 int sensor_read()
 {
@@ -164,50 +154,44 @@ void setup()
 {
 
   pinMode(AWAKE_ESP_PIN, OUTPUT);
+  // Serial = TinySoftwareSerial(serial_buffer, TX_ESP_PIN, RX_ESP_PIN);
   esp_serial.begin(sw_serial_speed);
   // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
-  pinMode(TX_ESP_PIN, OUTPUT);
-  digitalWrite(TX_ESP_PIN, LOW);
+  // pinMode(TX_ESP_PIN, OUTPUT);
+  // digitalWrite(TX_ESP_PIN, LOW);
 
   __awake_esp__();
+}
 
-  __await(dto.get_signal() == SIG_READY)
-  {
-    dto.read();
-    if (dto.get_signal() == SIG_CONFIG)
-    {
-      dto.get_data(&debounce_delay);
-      break;
-    }
-    else
-      delayMicroseconds(10);
-  }
-
-  __sleep_esp__();
+byte print_sensor(int value)
+{
+  esp_serial.print("Sensor value: ");
+  esp_serial.print(value);
+  esp_serial.print(" - ");
+  esp_serial.println(get_sensor_status(value));
+  return get_sensor_status(value);
 }
 
 void loop()
 {
 
   snore(SLEEP_STEP);
-  current_value = get_sensor_status();
-  if (debounce_value() || !(millis() % hours_ms(2)))
+
+  int read = sensor_read();
+  current_value = print_sensor(read);
+
+  if (current_value == espec_value)
   {
-    __awake_esp__();
+    esp_serial.println("Debounce...");
+    snore(seconds_ms(5U));
+    read = sensor_read();
+    current_value = print_sensor(read);
+  }
 
-    dto.send(SIG_AWAKE, &current_value);
-    Data data;
-    __await(data.signal == SIG_SLEEP)
-    {
-      dto.read(&data);
-      snore(SLEEP_STEP);
-    }
-
-    current_value = data.data[0];
-
-    espec_value = !current_value;
-
-    __sleep_esp__();
+  if (current_value == espec_value)
+  {
+    esp_serial.println("AWAKE");
+    espec_value = espec_value == HIGH ? LOW : HIGH;
   }
 }
 #endif
