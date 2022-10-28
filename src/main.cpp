@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #define SLEEP_STEP 500
-#define sw_serial_speed 9600
+#define sw_serial_speed 4600
 
 #include <times.h>
 #include <pins.h>
@@ -9,6 +9,8 @@
 #ifdef ESP8266
 // #define DISABLE_DEBUG_LOG
 #include <stand.h>
+
+SoftwareSerial attiny_serial(RX_PIN, TX_PIN, true);
 
 void handle_wifi_configuration();
 void config();
@@ -34,10 +36,16 @@ void setup()
 
 void loop()
 {
-  while (attiny_serial.available())
+
+  if (attiny_serial.available())
   {
-    Serial.write(attiny_serial.read());
+    byte data;
+    int read = attiny_serial.readBytes(&data, 1);
+    Serial.print(data);
+    Serial.print('-');
+    Serial.println((int)'A');
   }
+  delay(400);
 }
 
 void handle_wifi_configuration()
@@ -67,7 +75,7 @@ void handle_wifi_configuration()
 void config()
 {
   Serial.begin(115200);
-  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN);
+  attiny_serial.begin(sw_serial_speed);
 
   setup_pins();
   delay(100);
@@ -153,14 +161,15 @@ bool debounce_value()
 void setup()
 {
 
-  pinMode(AWAKE_ESP_PIN, OUTPUT);
+  // pinMode(AWAKE_ESP_PIN, OUTPUT);
   // Serial = TinySoftwareSerial(serial_buffer, TX_ESP_PIN, RX_ESP_PIN);
   esp_serial.begin(sw_serial_speed);
+
   // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
   // pinMode(TX_ESP_PIN, OUTPUT);
   // digitalWrite(TX_ESP_PIN, LOW);
 
-  __awake_esp__();
+  // __awake_esp__();
 }
 
 byte print_sensor(int value)
@@ -174,24 +183,22 @@ byte print_sensor(int value)
 
 void loop()
 {
+  // int read = sensor_read();
+  // current_value = print_sensor(read);
 
-  snore(SLEEP_STEP);
+  // if (current_value == espec_value)
+  // {
+  //   esp_serial.println("Debounce...");
+  //   snore(seconds_ms(5U));
+  //   read = sensor_read();
+  //   current_value = print_sensor(read);
+  // }
 
-  int read = sensor_read();
-  current_value = print_sensor(read);
-
-  if (current_value == espec_value)
-  {
-    esp_serial.println("Debounce...");
-    snore(seconds_ms(5U));
-    read = sensor_read();
-    current_value = print_sensor(read);
-  }
-
-  if (current_value == espec_value)
-  {
-    esp_serial.println("AWAKE");
-    espec_value = espec_value == HIGH ? LOW : HIGH;
-  }
+  // if (current_value == espec_value)
+  // {
+  //   esp_serial.println("AWAKE");
+  //   espec_value = espec_value == HIGH ? LOW : HIGH;
+  // }
+  esp_serial.print('A');
 }
 #endif

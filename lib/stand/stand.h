@@ -32,7 +32,5 @@ extern float time_delay;
 extern byte saved_sensor_status;
 extern uint64_t saved_time;
 
-extern SoftwareSerial attiny_serial;
-
 #endif
 #endif

@@ -15,7 +15,7 @@
   pinMode(RESTORE_PIN, INPUT_PULLUP); \
   pinMode(ADC_SIWTCH, OUTPUT);        \
   digitalWrite(ADC_SIWTCH, LOW);      \
-  pinMode(SLEEP_PIN, OUTPUT);         \
-  digitalWrite(SLEEP_PIN, LOW)
+  // pinMode(SLEEP_PIN, OUTPUT);         \
+  // digitalWrite(SLEEP_PIN, LOW)
 
 #endif

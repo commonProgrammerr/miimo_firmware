@@ -7,7 +7,6 @@
 float time_delay = 2.0f;
 byte saved_sensor_status = 10;
 uint64_t saved_time = 0;
-SoftwareSerial attiny_serial;
 
 byte get_sensor_status(byte last_status, long max)
 {
