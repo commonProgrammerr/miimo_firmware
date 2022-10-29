@@ -146,8 +146,16 @@ uint64_t time = millis();
 #define __awake_esp__() \
   digitalWrite(AWAKE_ESP_PIN, HIGH);
 
-#define sensor_read() \
-  static_cast<int>((analogRead(A3) + analogRead(A3) + analogRead(A3)) / 3)
+int sensor_read()
+{
+  int read = analogRead(A3);
+  delayMicroseconds(20);
+  read += analogRead(A3);
+  delayMicroseconds(20);
+  read += analogRead(A3);
+
+  return static_cast<int>(read / 3);
+}
 
 #define get_sleep_status() \
   digitalRead(SLEEP_ESP_PIN)
@@ -168,7 +176,7 @@ bool debounce_value()
   //     return false;
   //   delay(u_seconds(2));
   // }
-
+  current_value = sensor_read();
   return current_value == espec_value;
 }
 
