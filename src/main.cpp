@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #define SLEEP_STEP 500
-#define sw_serial_speed 4600
+#define sw_serial_speed 9600
 
 #include <times.h>
 #include <pins.h>
@@ -10,7 +10,7 @@
 // #define DISABLE_DEBUG_LOG
 #include <stand.h>
 
-SoftwareSerial attiny_serial(RX_PIN, TX_PIN, true);
+SoftwareSerial attiny_serial(RX_PIN, TX_PIN);
 
 void handle_wifi_configuration();
 void config();
@@ -19,8 +19,13 @@ void esp_hard_sleep();
 void setup()
 {
   config();
+  pinMode(2, OUTPUT);
+
+  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN);
+  attiny_serial.enableRx(true);
   log_value("[main]: delay time = ", time_delay);
   log_value("[main]: saved status = ", saved_sensor_status);
+
   // byte status_readed = sensor();
   // log_value("[main]: current status = ", status_readed);
   // if (status_readed != saved_sensor_status)
@@ -34,18 +39,21 @@ void setup()
   // esp_hard_sleep();
 }
 
+byte last;
 void loop()
 {
-
-  if (attiny_serial.available())
-  {
-    byte data;
-    int read = attiny_serial.readBytes(&data, 1);
-    Serial.print(data);
-    Serial.print('-');
-    Serial.println((int)'A');
-  }
-  delay(400);
+  //   attiny_serial.write('A');
+  //   if (attiny_serial.available())
+  // {
+  //   int read = attiny_serial.read();
+  //   Serial.write(read);
+  //   Serial.print(':');
+  //   Serial.print(read);
+  //   Serial.print(" -> ");
+  //   Serial.write('A');
+  //   Serial.print(':');
+  //   Serial.println((int)'A');
+  // }
 }
 
 void handle_wifi_configuration()
@@ -75,7 +83,12 @@ void handle_wifi_configuration()
 void config()
 {
   Serial.begin(115200);
-  attiny_serial.begin(sw_serial_speed);
+  Serial.setDebugOutput(true);
+  bool isValid = (RX_PIN >= 0 && RX_PIN <= 16) && !isFlashInterfacePin(RX_PIN);
+  Serial.print("\nRX pin is valid? ");
+
+  Serial.println(isValid ? "Sim!" : "Não");
+  // attiny_serial.isValidGPIOpin
 
   setup_pins();
   delay(100);
@@ -104,6 +117,7 @@ void esp_hard_sleep()
 #include "SoftwareSerial.h"
 
 //*********************************PINOS************************************
+// #define TX_ESP_PIN PB0 // saida para avisar que ligou o ESP por alarme
 #define TX_ESP_PIN PB1 // saida para avisar que ligou o ESP por alarme
 #define RX_ESP_PIN PB2
 #define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
@@ -111,7 +125,7 @@ void esp_hard_sleep()
 #define AWAKE_VALUE 380
 #define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
 
-SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN);
+SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN, true);
 // DTO dto(esp_serial);
 // soft_ring_buffer *serial_buffer = Serial._rx_buffer;
 
@@ -164,12 +178,13 @@ void setup()
   // pinMode(AWAKE_ESP_PIN, OUTPUT);
   // Serial = TinySoftwareSerial(serial_buffer, TX_ESP_PIN, RX_ESP_PIN);
   esp_serial.begin(sw_serial_speed);
-
+  pinMode(TX_ESP_PIN, OUTPUT);
+  pinMode(RX_ESP_PIN, INPUT);
   // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
   // pinMode(TX_ESP_PIN, OUTPUT);
   // digitalWrite(TX_ESP_PIN, LOW);
 
-  // __awake_esp__();
+  __awake_esp__();
 }
 
 byte print_sensor(int value)
@@ -183,6 +198,8 @@ byte print_sensor(int value)
 
 void loop()
 {
+  if (esp_serial.available())
+    esp_serial.write(esp_serial.read());
   // int read = sensor_read();
   // current_value = print_sensor(read);
 
@@ -199,6 +216,8 @@ void loop()
   //   esp_serial.println("AWAKE");
   //   espec_value = espec_value == HIGH ? LOW : HIGH;
   // }
-  esp_serial.print('A');
+  // esp_serial.write((uint8_t)0b01010101);
+  // delay(100);
+  // delayMicroseconds(10);
 }
 #endif
