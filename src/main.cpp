@@ -115,109 +115,94 @@ void esp_hard_sleep()
 #ifdef __AVR_ATtiny85__
 #include "tinysnore.h"
 #include "SoftwareSerial.h"
+#include "tiny_maint.h"
 
-//*********************************PINOS************************************
-// #define TX_ESP_PIN PB0 // saida para avisar que ligou o ESP por alarme
-#define TX_ESP_PIN PB1 // saida para avisar que ligou o ESP por alarme
-#define RX_ESP_PIN PB2
-#define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
-
-#define AWAKE_VALUE 380
-#define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
-
-SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN, true);
+SoftwareSerial esp_serial(RX_PIN, TX_PIN, true);
 // DTO dto(esp_serial);
 // soft_ring_buffer *serial_buffer = Serial._rx_buffer;
 
 uint8_t espec_value = HIGH;
 uint8_t current_value = LOW;
+bool configure_mode = false;
+
 uint64_t time = millis();
 float debounce_delay = 15.0;
 
-#define __await(condition) \
-  time = millis();         \
-  while (!condition && seconds_ms(20U) > (millis() - time))
-
-#define __sleep_esp__() \
-  digitalWrite(AWAKE_ESP_PIN, LOW)
-
-#define __awake_esp__() \
-  digitalWrite(AWAKE_ESP_PIN, HIGH);
-
-#define get_sensor_status(read) \
-  read >= AWAKE_VALUE ? HIGH : LOW
-
-int sensor_read()
+bool debounce_value(uint8_t val = current_value)
 {
-  int read = analogRead(A3);
-  delayMicroseconds(420);
-  read += analogRead(A3);
-  delayMicroseconds(420);
-  read += analogRead(A3);
+  if (val == espec_value)
+  {
+    snore(static_cast<uint32_t>(seconds_ms(debounce_delay)));
+    val = get_sensor_status();
+  }
 
-  return static_cast<int>(read / 3);
+  current_value = val;
+  return val == espec_value;
 }
 
-bool debounce_value()
-{
-  if (current_value == espec_value)
-    snore(seconds_ms(15U));
-  // for (uint8_t times = 8; times > 0; times--)
-  // {
-  //   if (get_sensor_status() != espec_value)
-  //     return false;
-  //   delay(u_seconds(2));
-  // }
-
-  return current_value == espec_value;
-}
+#define read_time() (esp_serial.available() == sizeof(float) && esp_serial.readBytes((byte *)&debounce_delay, sizeof(float)))
 
 void setup()
 {
 
-  // pinMode(AWAKE_ESP_PIN, OUTPUT);
-  // Serial = TinySoftwareSerial(serial_buffer, TX_ESP_PIN, RX_ESP_PIN);
   esp_serial.begin(sw_serial_speed);
-  pinMode(TX_ESP_PIN, OUTPUT);
-  pinMode(RX_ESP_PIN, INPUT);
-  // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
-  // pinMode(TX_ESP_PIN, OUTPUT);
-  // digitalWrite(TX_ESP_PIN, LOW);
+  setup_pins();
 
   __awake_esp__();
-}
+  __await_wake__();
 
-byte print_sensor(int value)
-{
-  esp_serial.print("Sensor value: ");
-  esp_serial.print(value);
-  esp_serial.print(" - ");
-  esp_serial.println(get_sensor_status(value));
-  return get_sensor_status(value);
+  if (was_timeout)
+    return;
+
+  __configure_mode__();
+  __await__(read_time())
+      delay(100);
 }
 
 void loop()
 {
-  if (esp_serial.available())
-    esp_serial.write(esp_serial.read());
-  // int read = sensor_read();
-  // current_value = print_sensor(read);
+  __sleep_esp__();
+  snore(seconds_ms(2));
 
-  // if (current_value == espec_value)
-  // {
-  //   esp_serial.println("Debounce...");
-  //   snore(seconds_ms(5U));
-  //   read = sensor_read();
-  //   current_value = print_sensor(read);
-  // }
+  if (configure_mode || sensor_value() >= CONFIG_VALUE)
+  {
+    configure_mode = true;
+    __awake_esp__();
+    __await_wake__();
 
-  // if (current_value == espec_value)
-  // {
-  //   esp_serial.println("AWAKE");
-  //   espec_value = espec_value == HIGH ? LOW : HIGH;
-  // }
-  // esp_serial.write((uint8_t)0b01010101);
-  // delay(100);
-  // delayMicroseconds(10);
+    if (was_timeout)
+      return;
+
+    __reset_mode__();
+    __await_wake__();
+
+    if (was_timeout)
+      return;
+
+    __configure_mode__();
+    __await_timeout__(read_time(), seconds_ms(500))
+        delay(100);
+
+    if (was_timeout)
+      return;
+
+    configure_mode = false;
+  }
+  else if (debounce_value(get_sensor_status()))
+  {
+    __awake_esp__();
+    __await_wake__();
+
+    if (was_timeout)
+      return;
+
+    __awake_sensor_mode__();
+    __await_timeout__(check_signal(SLEEP_SIG), seconds_ms(40));
+
+    if (was_timeout)
+      return;
+
+    espec_value = current_value;
+  }
 }
 #endif
