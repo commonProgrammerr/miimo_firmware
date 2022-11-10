@@ -58,6 +58,8 @@ void IRAM_ATTR handle_configure()
     Serial.println("\nSetup mode active:");
     Serial.print("  - send timer debounce: ");
     write(50);
+    write(60);
+    write(40);
     delay(10);
   }
   else if (RESET_MODE)
@@ -90,7 +92,7 @@ void IRAM_ATTR handle_configure()
 
 #define pinIntterrupt()                                      \
   cli();               /* Disable interrupts during setup */ \
-  MCUCR |= 0b00000011; /* watch for rising edge */           \
+  MCUCR |= 0b00000010; /* watch for falling edge */          \
   GIMSK |= 1 << INT0;  /* enable external interrupt */       \
   SREG |= 0b10000000;  /* global interrupt enable */         \
   sei();               /* last line of setup - enable interrupts after setup */
@@ -99,37 +101,24 @@ void IRAM_ATTR handle_configure()
   digitalWrite(AWAKE_ESP_PIN, LOW)
 
 void blink(byte times);
+int read();
+
+volatile byte _bit_index;
+volatile byte buffer[8];
+volatile byte size;
 
 #define SETUP_MODE 2
 void __awake_esp__(uint8_t mode = 0U)
 {
-  switch (mode)
-  {
-  case 1:
-    digitalWrite(PB1, 1);
-    digitalWrite(PB0, 1);
-    break;
-  case 2:
-    digitalWrite(PB1, 1);
-    digitalWrite(PB0, 0);
-    break;
-  case 3:
-    digitalWrite(PB1, 0);
-    digitalWrite(PB0, 1);
-    break;
-  case 4:
-    digitalWrite(PB1, 0);
-    digitalWrite(PB0, 0);
-    break;
 
-  default:
-    break;
-  }
-  byte state = digitalRead(PB0);
+  if (mode > 0)
+    digitalWrite(PB1, mode % 2);
+
   digitalWrite(PB0, LOW);
   digitalWrite(AWAKE_ESP_PIN, HIGH);
-  delay(92);
-  digitalWrite(PB0, state);
+  delay(120);
+  if (mode > 1)
+    digitalWrite(PB0, !digitalRead(PB0));
 }
 
 void blink(byte times = 1)
@@ -153,26 +142,16 @@ bool debounce()
 
 int read()
 {
-  uint32_t time = millis();
-  uint8_t read = 0U;
-
-  while (digitalRead(PB2) == HIGH && millis() - time <= 36)
-    delayMicroseconds(10);
-
-  while (digitalRead(PB2) == LOW && millis() - time <= 36)
-    delayMicroseconds(10);
-
-  if (millis() - time > 36)
+  if (!size)
     return -1;
 
-  for (byte i = 0; i < 8; i++)
-  {
-    delayMicroseconds(120);
-    read |= !digitalRead(PB2) << i;
-    delayMicroseconds(80);
-  }
+  byte poped_value = buffer[0];
 
-  return read;
+  for (byte i = 1; i < size; i++)
+    buffer[i - 1] = buffer[i];
+
+  size--;
+  return poped_value;
 }
 
 void setup()
@@ -181,35 +160,54 @@ void setup()
   pinMode(PB0, OUTPUT);
   pinMode(PB1, OUTPUT);
   pinMode(PB2, INPUT_PULLUP);
-
-  // pinIntterrupt(PB2);
+  pinIntterrupt();
   digitalWrite(PB1, 1);
+
+  size = 0;
+  _bit_index = 0;
 }
 
 void loop()
 {
   if (debounce())
   {
-    // __awake_esp__(2);
-
+    __awake_esp__(2);
     digitalWrite(PB0, !digitalRead(PB0));
+  }
+
+  if (size)
+  {
     int blinks = read();
     if (blinks > 0)
     {
       delay(2000);
       blink(blinks / 10);
+      __sleep_esp__();
     }
-    else
-    {
-      digitalWrite(PB1, !digitalRead(PB1));
-    }
-    delay(600);
-    __sleep_esp__();
   }
 }
 
-// ISR(INT0_vect)
-// {
-//   digitalWrite(PB1, !digitalRead(PB2));
-// }
+ISR(INT0_vect)
+{
+  _bit_index = 0;
+  while (digitalRead(PB2) == LOW && _bit_index <= 100)
+    delayMicroseconds(10);
+
+  if (_bit_index > 100)
+    return;
+
+  if (size >= 8)
+    for (_bit_index = 0; _bit_index < 8; _bit_index++)
+      delayMicroseconds(200);
+  else
+  {
+    for (_bit_index = 0; _bit_index < 8; _bit_index++)
+    {
+      delayMicroseconds(120);
+      buffer[size] |= !digitalRead(PB2) << _bit_index;
+      delayMicroseconds(80);
+    }
+    size++;
+  }
+}
 #endif
