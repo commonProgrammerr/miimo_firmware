@@ -1,223 +1,215 @@
 #include <Arduino.h>
 
 #define SLEEP_STEP 500
-#define sw_serial_speed 9600
+#define sw_serial_speed 1
 
 #include <times.h>
 #include <pins.h>
-
 #ifdef ESP8266
-// #define DISABLE_DEBUG_LOG
-#include <stand.h>
+#include "stand.h"
 
-SoftwareSerial attiny_serial(RX_PIN, TX_PIN);
+void IRAM_ATTR handle_configure();
 
-void handle_wifi_configuration();
-void config();
-void esp_hard_sleep();
+// max value 2410
+void write(byte value)
+{
+  digitalWrite(TX_PIN, HIGH);
+  delay(10);
+  digitalWrite(TX_PIN, LOW);
+  delayMicroseconds(30);
+  for (byte i = 0; i < 8; i++)
+  {
+    digitalWrite(TX_PIN, ((value >> i) % 2));
+    delayMicroseconds(200);
+  }
+  digitalWrite(TX_PIN, LOW);
+
+  Serial.print("0b");
+  for (int i = 7; i >= 0; i--)
+  {
+    Serial.print(((value >> i) % 2));
+  }
+  Serial.println();
+}
 
 void setup()
 {
-  config();
-  pinMode(2, OUTPUT);
+  pinMode(14, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(2), handle_configure, CHANGE);
+  pinMode(TX_PIN, OUTPUT);
 
-  attiny_serial.begin(sw_serial_speed, SWSERIAL_8N1, RX_PIN, TX_PIN);
-  attiny_serial.enableRx(true);
-  log_value("[main]: delay time = ", time_delay);
-  log_value("[main]: saved status = ", saved_sensor_status);
-
-  // byte status_readed = sensor();
-  // log_value("[main]: current status = ", status_readed);
-  // if (status_readed != saved_sensor_status)
-  // {
-  //   update_server(status_readed);
-  //   saved_sensor_status = status_readed;
-  //   save_param("status", String(saved_sensor_status));
-  //   delay(5);
-  // }
-
-  // esp_hard_sleep();
+  Serial.begin(115200);
+  Serial.println();
+  yield();
 }
 
-byte last;
+volatile int interrupts = 0;
 void loop()
 {
-  //   attiny_serial.write('A');
-  //   if (attiny_serial.available())
-  // {
-  //   int read = attiny_serial.read();
-  //   Serial.write(read);
-  //   Serial.print(':');
-  //   Serial.print(read);
-  //   Serial.print(" -> ");
-  //   Serial.write('A');
-  //   Serial.print(':');
-  //   Serial.println((int)'A');
-  // }
 }
 
-void handle_wifi_configuration()
+#define SETUP_MODE ((digitalRead(14) == LOW))
+#define RESET_MODE ((digitalRead(14) == HIGH))
+void IRAM_ATTR handle_configure()
 {
-
-  int should_config = get_saved_param("config").toInt();
-  if (should_config && wifi_connection_setup())
+  interrupts++;
+  if (SETUP_MODE)
   {
-    save_param("config", String(0));
-    time_delay = get_saved_param("delay").toFloat();
-    // dto.send(SIG_CONFIG, &time_delay);
+    Serial.println("\nSetup mode active:");
+    Serial.print("  - send timer debounce: ");
+    write(50);
+    delay(10);
   }
-  else
+  else if (RESET_MODE)
   {
-    for (byte i = 0; !digitalRead(RESTORE_PIN) && i <= 20; i++)
-    {
-      Serial.print("Reset pin read: ");
-      Serial.println(!digitalRead(RESTORE_PIN));
-      if (i == 20)
-        wifi_reset_config();
-
-      delay(65);
-    }
+    Serial.println("\nReset mode active:");
+    Serial.print("  - send timer debounce: ");
   }
 }
 
-void config()
-{
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
-  bool isValid = (RX_PIN >= 0 && RX_PIN <= 16) && !isFlashInterfacePin(RX_PIN);
-  Serial.print("\nRX pin is valid? ");
-
-  Serial.println(isValid ? "Sim!" : "Não");
-  // attiny_serial.isValidGPIOpin
-
-  setup_pins();
-  delay(100);
-  WiFi.forceSleepBegin();
-  delay(1);
-  WiFi.forceSleepWake();
-  delay(1);
-  params_start_FS();
-  delay(10);
-  log_flush();
-
-  handle_wifi_configuration();
-  saved_sensor_status = static_cast<byte>(get_saved_param("status").toInt());
-  time_delay = get_saved_param("delay").toFloat();
-  saved_time = static_cast<uint64_t>(get_saved_param("time").toInt());
-}
-
-void esp_hard_sleep()
-{
-  logln(F("going to sleep..."));
-}
 #endif
 
 #ifdef __AVR_ATtiny85__
 #include "tinysnore.h"
-#include "SoftwareSerial.h"
+#include "avr/interrupt.h"
+#include "avr/io.h"
 
 //*********************************PINOS************************************
-// #define TX_ESP_PIN PB0 // saida para avisar que ligou o ESP por alarme
-#define TX_ESP_PIN PB1 // saida para avisar que ligou o ESP por alarme
+#define TX_ESP_PIN PB1
 #define RX_ESP_PIN PB2
-#define AWAKE_ESP_PIN PB4 // saida para ligar o regulador 3v3 para o ESP
+#define AWAKE_ESP_PIN PB4
 
-#define AWAKE_VALUE 380
-#define MAX_AWAKE_TIME 2 // tempo maximo acordado em minutos
+// #define PCINT_VECTOR PCINT0_vect
 
-SoftwareSerial esp_serial(RX_ESP_PIN, TX_ESP_PIN, true);
-// DTO dto(esp_serial);
-// soft_ring_buffer *serial_buffer = Serial._rx_buffer;
+// #define pinIntterrupt(pin)                                                                                        \
+  cli();                      /* Disable interrupts during setup */                                               \
+  PCMSK |= (1 << pin);        /*Enable interrupt handler (ISR) for our chosen interrupt pin (PCINT2/PB2/pin 7) */ \
+  GIMSK |= (1 << PCIE);       /*Enable PCINT interrupt in the general interrupt mask */                           \
+  pinMode(pin, INPUT_PULLUP); /*Set our interrupt pin as input with a pullup to keep it stable */                 \
+  sei();                      /*last line of setup - enable interrupts after setup */
 
-uint8_t espec_value = HIGH;
-uint8_t current_value = LOW;
-uint64_t time = millis();
-float debounce_delay = 15.0;
-
-#define __await(condition) \
-  time = millis();         \
-  while (!condition && seconds_ms(20U) > (millis() - time))
+#define pinIntterrupt()                                      \
+  cli();               /* Disable interrupts during setup */ \
+  MCUCR |= 0b00000011; /* watch for rising edge */           \
+  GIMSK |= 1 << INT0;  /* enable external interrupt */       \
+  SREG |= 0b10000000;  /* global interrupt enable */         \
+  sei();               /* last line of setup - enable interrupts after setup */
 
 #define __sleep_esp__() \
   digitalWrite(AWAKE_ESP_PIN, LOW)
 
-#define __awake_esp__() \
-  digitalWrite(AWAKE_ESP_PIN, HIGH);
+void blink(byte times);
 
-#define get_sensor_status(read) \
-  read >= AWAKE_VALUE ? HIGH : LOW
-
-int sensor_read()
+#define SETUP_MODE 2
+void __awake_esp__(uint8_t mode = 0U)
 {
-  int read = analogRead(A3);
-  delayMicroseconds(420);
-  read += analogRead(A3);
-  delayMicroseconds(420);
-  read += analogRead(A3);
+  switch (mode)
+  {
+  case 1:
+    digitalWrite(PB1, 1);
+    digitalWrite(PB0, 1);
+    break;
+  case 2:
+    digitalWrite(PB1, 1);
+    digitalWrite(PB0, 0);
+    break;
+  case 3:
+    digitalWrite(PB1, 0);
+    digitalWrite(PB0, 1);
+    break;
+  case 4:
+    digitalWrite(PB1, 0);
+    digitalWrite(PB0, 0);
+    break;
 
-  return static_cast<int>(read / 3);
+  default:
+    break;
+  }
+  byte state = digitalRead(PB0);
+  digitalWrite(PB0, LOW);
+  digitalWrite(AWAKE_ESP_PIN, HIGH);
+  delay(92);
+  digitalWrite(PB0, state);
 }
 
-bool debounce_value()
+void blink(byte times = 1)
 {
-  if (current_value == espec_value)
-    snore(seconds_ms(15U));
-  // for (uint8_t times = 8; times > 0; times--)
-  // {
-  //   if (get_sensor_status() != espec_value)
-  //     return false;
-  //   delay(u_seconds(2));
-  // }
+  for (byte i = 0; i < times; i++)
+  {
+    digitalWrite(PB1, !digitalRead(PB1));
+    delay(400);
+    digitalWrite(PB1, !digitalRead(PB1));
+    delay(400);
+  }
+}
 
-  return current_value == espec_value;
+bool debounce()
+{
+  if (analogRead(A3) < 800)
+    return false;
+  delay(3000);
+  return analogRead(A3) >= 800;
+}
+
+int read()
+{
+  uint32_t time = millis();
+  uint8_t read = 0U;
+
+  while (digitalRead(PB2) == HIGH && millis() - time <= 36)
+    delayMicroseconds(10);
+
+  while (digitalRead(PB2) == LOW && millis() - time <= 36)
+    delayMicroseconds(10);
+
+  if (millis() - time > 36)
+    return -1;
+
+  for (byte i = 0; i < 8; i++)
+  {
+    delayMicroseconds(120);
+    read |= !digitalRead(PB2) << i;
+    delayMicroseconds(80);
+  }
+
+  return read;
 }
 
 void setup()
 {
+  pinMode(AWAKE_ESP_PIN, OUTPUT);
+  pinMode(PB0, OUTPUT);
+  pinMode(PB1, OUTPUT);
+  pinMode(PB2, INPUT_PULLUP);
 
-  // pinMode(AWAKE_ESP_PIN, OUTPUT);
-  // Serial = TinySoftwareSerial(serial_buffer, TX_ESP_PIN, RX_ESP_PIN);
-  esp_serial.begin(sw_serial_speed);
-  pinMode(TX_ESP_PIN, OUTPUT);
-  pinMode(RX_ESP_PIN, INPUT);
-  // pinMode(SLEEP_ESP_PIN, INPUT_PULLUP);
-  // pinMode(TX_ESP_PIN, OUTPUT);
-  // digitalWrite(TX_ESP_PIN, LOW);
-
-  __awake_esp__();
-}
-
-byte print_sensor(int value)
-{
-  esp_serial.print("Sensor value: ");
-  esp_serial.print(value);
-  esp_serial.print(" - ");
-  esp_serial.println(get_sensor_status(value));
-  return get_sensor_status(value);
+  // pinIntterrupt(PB2);
+  digitalWrite(PB1, 1);
 }
 
 void loop()
 {
-  if (esp_serial.available())
-    esp_serial.write(esp_serial.read());
-  // int read = sensor_read();
-  // current_value = print_sensor(read);
+  if (debounce())
+  {
+    // __awake_esp__(2);
 
-  // if (current_value == espec_value)
-  // {
-  //   esp_serial.println("Debounce...");
-  //   snore(seconds_ms(5U));
-  //   read = sensor_read();
-  //   current_value = print_sensor(read);
-  // }
-
-  // if (current_value == espec_value)
-  // {
-  //   esp_serial.println("AWAKE");
-  //   espec_value = espec_value == HIGH ? LOW : HIGH;
-  // }
-  // esp_serial.write((uint8_t)0b01010101);
-  // delay(100);
-  // delayMicroseconds(10);
+    digitalWrite(PB0, !digitalRead(PB0));
+    int blinks = read();
+    if (blinks > 0)
+    {
+      delay(2000);
+      blink(blinks / 10);
+    }
+    else
+    {
+      digitalWrite(PB1, !digitalRead(PB1));
+    }
+    delay(600);
+    __sleep_esp__();
+  }
 }
+
+// ISR(INT0_vect)
+// {
+//   digitalWrite(PB1, !digitalRead(PB2));
+// }
 #endif
