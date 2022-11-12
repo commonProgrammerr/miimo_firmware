@@ -39,19 +39,5 @@
   pinMode(PB2, INPUT_PULLUP);     \
   digitalWrite(PB1, 1);
 
-#define setup_rx_interrupt()                                 \
-  cli();               /* Disable interrupts during setup */ \
-  MCUCR |= 0b00000010; /* watch for falling edge */          \
-  GIMSK |= 1 << INT0;  /* enable external interrupt */       \
-  SREG |= 0b10000000;  /* global interrupt enable */         \
-  sei();               /* last line of setup - enable interrupts after setup */
-
-#define disable_rx_interrupt()                               \
-  cli();               /* Disable interrupts during setup */ \
-  MCUCR |= 0b00000010; /* watch for falling edge */          \
-  GIMSK -= 1 << INT0;  /* enable external interrupt */       \
-  SREG -= 0b10000000;  /* global interrupt enable */         \
-  sei();               /* last line of setup - enable interrupts after setup */
-
 #endif
 #endif
