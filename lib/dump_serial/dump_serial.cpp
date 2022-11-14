@@ -7,6 +7,8 @@ volatile bool hold = false;
 
 void handle_store_bytes()
 {
+  while (hold)
+    delayMicroseconds(1);
   hold = true;
   byte _head = head;
   byte i = (_head + 1) % MAX_BUFFER_SIZE;
@@ -105,15 +107,6 @@ int DumpSerial::read(void)
     return buffer[_tail];
   }
 }
-
-#ifdef __AVR_ATtiny85__
-ISR(INT0_vect)
-{
-  while (hold)
-    delayMicroseconds(1);
-  handle_store_bytes();
-}
-#endif
 
 #ifdef ESP8266
 void IRAM_ATTR handle_serial()

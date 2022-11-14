@@ -1,42 +1,40 @@
 
 #ifdef ESP8266
 #include "esp.h"
-volatile bool interrupt = false;
+
+volatile byte esp_mode = 0x0;
+
+// sleep
 void setup()
 {
-  setup_pins();
-  __interrupt__(KEY_PIN, handle_configure, FALLING);
-
+  // setup_mode
   Serial.begin(115200);
-  Serial.println();
-  yield();
-}
-void loop()
-{
+  setup_pins();
+
+  WiFi.forceSleepBegin();
+  delay(1);
+  WiFi.forceSleepWake();
+  delay(1);
+  params_start_FS();
+  log_flush();
+
+  ping_attiny();
+  delay(10);
+  handle_wifi_configuration(Dump);
+
+  if (digitalRead(14))
+  {
+    Serial.println("[main]: Preparing to updte status...");
+    send_status();
+    ping_attiny();
+  }
+  else
+  {
+    Serial.println("[main]: Reseting WIFI data...");
+    wifi_reset_config();
+  }
 }
 
-void IRAM_ATTR handle_configure()
-{
-  if (interrupt)
-    return;
-
-  interrupt = true;
-  if (SETUP_MODE)
-  {
-    Serial.println("\nSetup mode active:");
-    Serial.print("  - send timer debounce: ");
-    Dump.write(0b00001001);
-    Dump.write(0b00000010);
-    // Dump.write(0b00000101);
-    Dump.write(0b00000011);
-    // Dump.write(0b00001110);
-  }
-  else if (RESET_MODE)
-  {
-    Serial.println("\nReset mode active:");
-    Serial.print("  - send timer debounce: ");
-  }
-  interrupt = false;
-}
+void loop() {}
 
 #endif

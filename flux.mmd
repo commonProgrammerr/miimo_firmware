@@ -1,0 +1,12 @@
+flowchart TD
+    esp_s[esp desligado] --> |acordado| setup
+    setup --> |esp ping attiny| flag{attiny flag}
+    flag --> |configuração| config 
+    flag --> |default| status[esp envia status]
+    config --> |attiny ping esp| esp_conf[esp entra em modo de configuração]
+    esp_conf --> esp_conf_fim
+    esp_conf_fim --> |esp ping attiny| espera
+    espera --> |attiny ping esp| esp_send[esp envia dados]
+    status --> |esp ping attiny| att_s[attiny desliga esp]
+    esp_send --> att_s
+    att_s --> esp_s
