@@ -10,12 +10,10 @@
             "includePath": [
                 "/home/scorel/Documentos/mimo_firmware/include",
                 "/home/scorel/Documentos/mimo_firmware/src",
-                "/home/scorel/Documentos/mimo_firmware/lib/stand",
                 "/home/scorel/Documentos/mimo_firmware/lib/status_server",
+                "/home/scorel/Documentos/mimo_firmware/lib/logs",
                 "/home/scorel/Documentos/mimo_firmware/lib/connection",
                 "/home/scorel/Documentos/mimo_firmware/lib/params",
-                "/home/scorel/Documentos/mimo_firmware/lib/logs",
-                "/home/scorel/Documentos/mimo_firmware/.pio/libdeps/attiny85/attiny-onewire-library",
                 "/home/scorel/Documentos/mimo_firmware/.pio/libdeps/attiny85/TinySnore/src",
                 "/home/scorel/.platformio/packages/framework-arduino-avr-attiny/cores/tiny",
                 "/home/scorel/.platformio/packages/framework-arduino-avr-attiny/variants/tinyX5",
@@ -35,12 +33,10 @@
                 "path": [
                     "/home/scorel/Documentos/mimo_firmware/include",
                     "/home/scorel/Documentos/mimo_firmware/src",
-                    "/home/scorel/Documentos/mimo_firmware/lib/stand",
                     "/home/scorel/Documentos/mimo_firmware/lib/status_server",
+                    "/home/scorel/Documentos/mimo_firmware/lib/logs",
                     "/home/scorel/Documentos/mimo_firmware/lib/connection",
                     "/home/scorel/Documentos/mimo_firmware/lib/params",
-                    "/home/scorel/Documentos/mimo_firmware/lib/logs",
-                    "/home/scorel/Documentos/mimo_firmware/.pio/libdeps/attiny85/attiny-onewire-library",
                     "/home/scorel/Documentos/mimo_firmware/.pio/libdeps/attiny85/TinySnore/src",
                     "/home/scorel/.platformio/packages/framework-arduino-avr-attiny/cores/tiny",
                     "/home/scorel/.platformio/packages/framework-arduino-avr-attiny/variants/tinyX5",
@@ -57,7 +53,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60104",
+                "PLATFORMIO=60105",
                 "ARDUINO_AVR_ATTINYX5",
                 "F_CPU=8000000L",
                 "ARDUINO_ARCH_AVR",
