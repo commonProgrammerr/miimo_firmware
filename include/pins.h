@@ -47,6 +47,7 @@
   pinMode(WAK_PIN, INPUT_PULLUP)
 
 #define sensor_value analogRead(SENSOR_PIN)
+#define wak_value digitalRead(WAK_PIN)
 #define readWak() !digitalRead(WAK_PIN)
 #define writeCH1(value) digitalWrite(CH_1_PIN, value)
 #define writeCH2(value) digitalWrite(CH_2_PIN, value)

@@ -17,6 +17,7 @@ void setup()
   {
     saved_sensor_status = status_readed;
     save_param("status", String(saved_sensor_status));
+    update_server(status_readed);
   }
   else if (CH2 == LOW)
   {
@@ -50,6 +51,7 @@ uint64_t time = millis();
 #define await_esp(value) \
   time = millis();       \
   while (readWak() == !value && seconds_ms(20) >= (millis() - time))
+#define timeout(start, timeout) if (millis() - start >= timeout)
 
 #define __sleep_esp__()             \
   digitalWrite(AWAKE_ESP_PIN, LOW); \
@@ -92,6 +94,25 @@ bool debounce_value()
   if (get_sensor_status() == espec_value)
     snore(seconds_ms(15));
   return get_sensor_status() == espec_value;
+}
+
+bool read_byte(byte &data, uint16_t timeout = 500)
+{
+  uint32_t time = millis();
+  await_esp(LOW)
+  {
+    delayMicroseconds(10);
+    timeout(time, timeout) return false;
+  }
+  delayMicroseconds(50);
+  for (byte i = 0; i < 8; i++)
+  {
+    delayMicroseconds(100);
+    data |= (wak_value ? 0 : 1) << i;
+    delayMicroseconds(100);
+  }
+
+  return true;
 }
 
 void setup()

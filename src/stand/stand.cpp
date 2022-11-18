@@ -28,6 +28,21 @@ bool update_server(byte code)
   }
 }
 
+void write_byte(byte data)
+{
+  writeWak(HIGH);
+  delayMicroseconds(20);
+  writeWak(LOW);
+  delayMicroseconds(40);
+
+  for (byte i = 0; i < 8; i++)
+  {
+    writeWak(((data >> i) % 2));
+    delayMicroseconds(200);
+  }
+  writeWak(LOW);
+}
+
 void handle_wifi_configuration()
 {
 
