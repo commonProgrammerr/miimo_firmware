@@ -10,15 +10,17 @@ void esp_hard_sleep();
 void setup()
 {
   config();
-  log_value("[main]: saved status = ", saved_sensor_status);
   byte status_readed = sensor();
+  log_value("[main]: saved status = ", saved_sensor_status);
   log_value("[main]: current status = ", status_readed);
   if (status_readed != saved_sensor_status)
   {
-    update_server(status_readed);
     saved_sensor_status = status_readed;
     save_param("status", String(saved_sensor_status));
-    delay(10);
+  }
+  else if (CH2 == LOW)
+  {
+    update_server(status_readed);
   }
 
   esp_hard_sleep();
@@ -49,8 +51,9 @@ uint64_t time = millis();
   time = millis();       \
   while (readWak() == !value && seconds_ms(20) >= (millis() - time))
 
-#define __sleep_esp__() \
-  digitalWrite(AWAKE_ESP_PIN, LOW)
+#define __sleep_esp__()             \
+  digitalWrite(AWAKE_ESP_PIN, LOW); \
+  resetCH();
 
 #define __awake_esp__() \
   digitalWrite(AWAKE_ESP_PIN, HIGH)
@@ -117,8 +120,6 @@ void loop()
     {
       snore(1000);
     }
-
-    writeCH1(LOW);
     __sleep_esp__();
   }
 
@@ -127,6 +128,16 @@ void loop()
 
     espec_value = !get_sensor_status();
     __awake_esp__();
+    await_esp(HIGH)
+    {
+      snore(1000);
+    }
+    __sleep_esp__();
+  }
+  else if (millis() % hours_ms(12) == 0)
+  {
+    __awake_esp__();
+    writeCH2(HIGH);
     await_esp(HIGH)
     {
       snore(1000);

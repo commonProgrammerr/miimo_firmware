@@ -50,6 +50,9 @@
 #define readWak() !digitalRead(WAK_PIN)
 #define writeCH1(value) digitalWrite(CH_1_PIN, value)
 #define writeCH2(value) digitalWrite(CH_2_PIN, value)
+#define resetCH(value) \
+  writeCH1(LOW);       \
+  writeCH2(LOW)
 
 #endif
 #endif
