@@ -2,19 +2,19 @@
 #define __times_h
 
 #define second_ms 1000
-#define minute_ms 60 * second_ms
-#define hour_ms 60 * minute_ms
-#define day_ms 24 * hour_ms
+#define minute_ms (60 * second_ms)
+#define hour_ms (60 * minute_ms)
+#define day_ms (24 * hour_ms)
 
 #define minute_sec 60
-#define hour_sec 60 * minute_sec
-#define day_sec 24 * hour_sec
+#define hour_sec (60 * minute_sec)
+#define day_sec (24 * hour_sec)
 
 #define ms_us 1000
 #define second_us 1000000
-#define min_us 60 * second_us
-#define hour_us 60 * min_us
-#define day_us 24 * hour_us
+#define min_us (60 * second_us)
+#define hour_us (60 * min_us)
+#define day_us (24 * hour_us)
 
 #define millis_us(ms) (ms_us * ms)
 #define seconds_us(second) (second_us * second)

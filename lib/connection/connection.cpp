@@ -22,8 +22,10 @@ String getParam(String name, String default_value)
 
 void saveParamCallback()
 {
+  String param_value = getParam("delay", get_saved_param("delay"));
+
   params_start_FS();
-  save_param("delay", getParam("delay", get_saved_param("delay")));
+  save_param("delay", param_value);
   Serial.println("[WiFi CallBack]: save callback function suceeded!");
   wm = nullptr;
 }
@@ -86,13 +88,8 @@ void wifi_reset_config()
 {
   WiFiManager wifi_manager;
   wifi_manager.resetSettings();
-  uint64_t time = 0;
   save_param("config", "1");
-  save_param("status", "10");
   save_param("status", "0");
-  save_param("count", "0");
-  save_file("time", &time);
-  save_param("DEBOUNCE", "0");
   delay(10);
   ESP.restart();
 }

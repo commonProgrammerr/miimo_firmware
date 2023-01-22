@@ -28,20 +28,24 @@ bool update_server(byte code)
   }
 }
 
-void write_byte(byte data)
-{
-  writeWak(HIGH);
-  delayMicroseconds(20);
-  writeWak(LOW);
-  delayMicroseconds(40);
+// void write_byte(byte data)
+// {
+//   writeWak(HIGH);
+//   delayMicroseconds(20);
+//   writeWak(LOW);
+//   delayMicroseconds(30);
 
-  for (byte i = 0; i < 8; i++)
-  {
-    writeWak(((data >> i) % 2));
-    delayMicroseconds(200);
-  }
-  writeWak(LOW);
-}
+//   for (byte i = 0; i < 8; i++)
+//   {
+//     digitalWrite(WAK_PIN, (data >> i) % 2);
+//     delayMicroseconds(200);
+//   }
+//   for (int i = 7; i > 0; i--)
+//     Serial.print((data >> i) % 2);
+
+//   Serial.println();
+//   writeWak(LOW);
+// }
 
 void handle_wifi_configuration()
 {
@@ -53,7 +57,7 @@ void handle_wifi_configuration()
   }
   else if (CH1 == LOW)
   {
-    Serial.print("Reseting configuration...");
+    Serial.print("[WiFi]: Reseting configuration...");
     wifi_reset_config();
     delay(65);
   }
@@ -71,7 +75,6 @@ void config()
   delayMicroseconds(200);
   log_flush();
 
-  writeWak(LOW);
   handle_wifi_configuration();
   saved_sensor_status = static_cast<byte>(get_saved_param("status").toInt());
 }

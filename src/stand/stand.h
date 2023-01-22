@@ -17,6 +17,7 @@
 #define await(t) (delay(static_cast<long>(t)))
 
 extern byte saved_sensor_status;
+// extern float debounce_timer;
 bool update_server(byte code);
 void handle_wifi_configuration();
 void config();

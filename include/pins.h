@@ -20,7 +20,11 @@
   pinMode(SENSOR_PIN, INPUT_PULLUP)
 
 #define sensor_value analogRead(SENSOR_PIN)
-#define writeWak(value) digitalWrite(WAK_PIN, value)
+#define writeWak(value)                   \
+  Serial.print("Set wak pin: ");          \
+  Serial.println(value ? "HIGH" : "LOW"); \
+  digitalWrite(WAK_PIN, value)
+
 #define readCH1() digitalRead(CH_1_PIN) ? LOW : HIGH
 #define readCH2() digitalRead(CH_2_PIN) ? LOW : HIGH
 #define CH1 digitalRead(CH_1_PIN)
