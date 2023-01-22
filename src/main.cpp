@@ -154,17 +154,3 @@ bool debounce(bool (*validator)(void), float time)
 }
 
 #endif
-
-// float toFloat(uint8_t x)
-// {
-//   return x / 255e1;
-// }
-
-// uint8_t fromFloat(float x)
-// {
-//   if (x < 0)
-//     return 0;
-//   if (x > 10)
-//     return 255;
-//   return 255e1 * x; // this truncates; add 0.5 to round instead
-// }
