@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#define SLEEP_STEP 500
+#define SLEEP_STEP 2000
 // float toFloat(uint8_t x);
 // uint8_t fromFloat(float x);
 
@@ -37,11 +37,13 @@ void esp_hard_sleep()
 #include "times.h"
 
 #define AWAKE_VALUE 380
-#define CONFIG_VALUE 920
+#define CONFIG_VALUE 960
 
 uint8_t espec_value = HIGH;
+
 float debounce_timer = 15.0f;
-uint64_t time = millis();
+
+unsigned long time = millis();
 uint64_t count = 0UL;
 
 #define await_esp(value) \
@@ -93,7 +95,7 @@ void setup()
 {
   setup_pins();
   __awake_esp__();
-  await_esp(HIGH) snore(200);
+  await_esp(HIGH) delay(200);
   __sleep_esp__();
 }
 
@@ -120,9 +122,9 @@ void loop()
 int sensor_read()
 {
   int read = sensor_value;
-  delayMicroseconds(20);
+  delayMicroseconds(200);
   read += sensor_value;
-  delayMicroseconds(20);
+  delayMicroseconds(200);
   read += sensor_value;
 
   return static_cast<int>(read / 3);
@@ -132,7 +134,7 @@ void send_signal()
 {
   __awake_esp__();
   await_esp(HIGH)
-      snore(SLEEP_STEP);
+      delay(500);
   __sleep_esp__();
 }
 
@@ -147,7 +149,7 @@ bool debounce(bool (*validator)(void), float time)
     {
       if (validator() == false)
         return false;
-      snore(static_cast<uint32_t>(seconds_ms(time / 10)));
+      delay(static_cast<unsigned long>(seconds_ms(time / 10)));
     }
 
   return validator();

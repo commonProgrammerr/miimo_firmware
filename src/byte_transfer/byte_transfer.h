@@ -1,6 +1,7 @@
 #ifndef __byte_transfer_h__
 #define __byte_transfer_h__
 
+#define __BYTE_DELAY_MS__ 10
 #include <Arduino.h>
 
 extern byte tx_pin;
